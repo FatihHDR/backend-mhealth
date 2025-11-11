@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
             HospitalRelationSeeder::class,
             MedicalPackageSeeder::class,
             LatestPackageSeeder::class,
+            HealingMeditationSeeder::class,
+            HealthStepProgramSeeder::class,
         ]);
         
         $this->command->info('All seeders completed successfully! 🎉');
