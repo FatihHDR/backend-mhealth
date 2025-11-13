@@ -51,7 +51,7 @@ composer:install:
   extends: .php_base
   stage: build
   script:
-    - composer install --prefer-dist --no-ansi --no-interaction --no-progress --no-scripts
+    - composer install --prefer-dist --no-ansi --no-interaction --no-progress --optimize-autoloader
     - cp .env.example .env
     - php artisan key:generate
   artifacts:
@@ -70,13 +70,13 @@ npm:build:
   artifacts:
     paths:
       - public/build/
-      - node_modules/
     expire_in: 1 hour
   cache:
     key:
       files:
         - package-lock.json
     paths:
+      - node_modules/
       - .npm/
 
 # Code Style Check with Laravel Pint
@@ -117,14 +117,16 @@ phpunit:test:
     - mysql:8.0
   dependencies:
     - composer:install
+  variables:
+    DB_CONNECTION: mysql
+    DB_DATABASE: laravel_test
   script:
     - php -v
     - cp .env.example .env
     - php artisan key:generate
     - php artisan config:clear
     - php artisan cache:clear
-    - php artisan migrate --force
-    - php artisan db:seed --force
+    - php artisan migrate --force --seed
     - ./vendor/bin/phpunit --testdox --colors=never --coverage-text --coverage-cobertura=coverage.cobertura.xml
   coverage: '/^\s*Lines:\s*\d+.\d+\%/'
   artifacts:
