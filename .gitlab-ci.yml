@@ -24,20 +24,15 @@ cache:
 
 # Global variables
 variables:
-  MYSQL_DATABASE: laravel_test
-  MYSQL_ROOT_PASSWORD: secret
-  DB_HOST: mysql
-  DB_USERNAME: root
   CACHE_DRIVER: array
   SESSION_DRIVER: array
-  QUEUE_CONNECTION: sync
 
 # Template for PHP jobs
 .php_base:
   before_script:
     - apt-get update -yqq
-    - apt-get install -yqq git libzip-dev libpq-dev libicu-dev libonig-dev unzip
-    - docker-php-ext-install pdo_mysql zip intl mbstring
+    - apt-get install -yqq git libzip-dev libpq-dev libicu-dev libonig-dev libsqlite3-dev unzip
+    - docker-php-ext-install pdo_mysql pdo_sqlite zip intl mbstring
     - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
     - composer --version
 
@@ -118,37 +113,17 @@ security:check:
 phpunit:test:
   extends: .php_base
   stage: test
-  services:
-    - mysql:8.0
   dependencies:
     - composer:install
-  variables:
-    DB_CONNECTION: mysql
-    DB_DATABASE: laravel_test
-    CACHE_DRIVER: array
-    SESSION_DRIVER: array
   script:
     - php -v
     - cp .env.example .env
     - php artisan key:generate
-    # Wait for MySQL to be ready
-    - apt-get install -yqq default-mysql-client
-    - |
-      until mysqladmin ping -h"$DB_HOST" -u"$DB_USERNAME" -p"$MYSQL_ROOT_PASSWORD" --silent; do
-        echo 'Waiting for MySQL...'
-        sleep 2
-      done
-    - echo 'MySQL is ready!'
     - php artisan config:clear
     - php artisan migrate --force --seed
-    - ./vendor/bin/phpunit --testdox --colors=never --coverage-text --coverage-cobertura=coverage.cobertura.xml
-  coverage: '/^\s*Lines:\s*\d+.\d+\%/'
+    - ./vendor/bin/phpunit --testdox --colors=never
   artifacts:
     when: always
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: coverage.cobertura.xml
     paths:
       - storage/logs/
     expire_in: 1 week
