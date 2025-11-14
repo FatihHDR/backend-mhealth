@@ -9,7 +9,6 @@ stages:
   - build
   - test
   - quality
-  - deploy
 
 # Cache dependencies for faster builds
 cache:
@@ -130,59 +129,3 @@ phpunit:test:
     paths:
       - storage/logs/
     expire_in: 1 week
-
-# Deploy to Staging
-deploy:staging:
-  stage: deploy
-  environment:
-    name: staging
-    url: https://staging.yourdomain.com
-  only:
-    - develop
-  before_script:
-    - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - ssh-keyscan $STAGING_SERVER_IP >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-  script:
-    - echo "Deploying to staging server..."
-    - ssh $STAGING_USER@$STAGING_SERVER_IP "cd $STAGING_PATH && git pull origin develop"
-    - ssh $STAGING_USER@$STAGING_SERVER_IP "cd $STAGING_PATH && composer install --no-dev --optimize-autoloader"
-    - ssh $STAGING_USER@$STAGING_SERVER_IP "cd $STAGING_PATH && php artisan migrate --force"
-    - ssh $STAGING_USER@$STAGING_SERVER_IP "cd $STAGING_PATH && php artisan config:cache"
-    - ssh $STAGING_USER@$STAGING_SERVER_IP "cd $STAGING_PATH && php artisan route:cache"
-    - ssh $STAGING_USER@$STAGING_SERVER_IP "cd $STAGING_PATH && php artisan view:cache"
-    - ssh $STAGING_USER@$STAGING_SERVER_IP "cd $STAGING_PATH && php artisan queue:restart"
-  when: manual
-
-# Deploy to Production
-deploy:production:
-  stage: deploy
-  environment:
-    name: production
-    url: https://yourdomain.com
-  only:
-    - main
-    - master
-  before_script:
-    - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - ssh-keyscan $PRODUCTION_SERVER_IP >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-  script:
-    - echo "Deploying to production server..."
-    - ssh $PRODUCTION_USER@$PRODUCTION_SERVER_IP "cd $PRODUCTION_PATH && git pull origin main"
-    - ssh $PRODUCTION_USER@$PRODUCTION_SERVER_IP "cd $PRODUCTION_PATH && composer install --no-dev --optimize-autoloader"
-    - ssh $PRODUCTION_USER@$PRODUCTION_SERVER_IP "cd $PRODUCTION_PATH && php artisan migrate --force"
-    - ssh $PRODUCTION_USER@$PRODUCTION_SERVER_IP "cd $PRODUCTION_PATH && php artisan config:cache"
-    - ssh $PRODUCTION_USER@$PRODUCTION_SERVER_IP "cd $PRODUCTION_PATH && php artisan route:cache"
-    - ssh $PRODUCTION_USER@$PRODUCTION_SERVER_IP "cd $PRODUCTION_PATH && php artisan view:cache"
-    - ssh $PRODUCTION_USER@$PRODUCTION_SERVER_IP "cd $PRODUCTION_PATH && php artisan queue:restart"
-    - ssh $PRODUCTION_USER@$PRODUCTION_SERVER_IP "cd $PRODUCTION_PATH && php artisan octane:reload"
-  when: manual

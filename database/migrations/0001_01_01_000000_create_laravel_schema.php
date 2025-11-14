@@ -10,9 +10,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Create 'laravel' schema for Supabase
+        // Create 'laravel' schema for Supabase/PostgreSQL only
         // This separates our app data from Supabase's public schema (which is exposed as API)
-        DB::statement('CREATE SCHEMA IF NOT EXISTS laravel');
+        // Skip for SQLite as it doesn't support schemas
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('CREATE SCHEMA IF NOT EXISTS laravel');
+        }
     }
 
     /**
@@ -20,6 +23,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement('DROP SCHEMA IF EXISTS laravel CASCADE');
+        // Drop schema only for PostgreSQL
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('DROP SCHEMA IF EXISTS laravel CASCADE');
+        }
     }
 };
