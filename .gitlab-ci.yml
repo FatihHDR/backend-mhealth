@@ -118,6 +118,9 @@ phpunit:test:
   script:
     - php -v
     - cp .env.example .env
+    # Override database config untuk testing dengan SQLite
+    - echo "DB_CONNECTION=sqlite" >> .env
+    - echo "DB_DATABASE=:memory:" >> .env
     - php artisan key:generate
     - php artisan config:clear
     - php artisan migrate --force --seed
