@@ -2,21 +2,22 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Models\Package;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\Package;
 
 class PackageController extends Controller
 {
     public function index()
     {
         $packages = Package::orderBy('created_at', 'desc')->paginate(15);
+
         return response()->json($packages);
     }
 
     public function show($id)
     {
         $package = Package::findOrFail($id);
+
         return response()->json($package);
     }
 
@@ -25,6 +26,7 @@ class PackageController extends Controller
         $packages = Package::where('is_medical', true)
             ->orderBy('created_at', 'desc')
             ->paginate(15);
+
         return response()->json($packages);
     }
 
@@ -33,6 +35,7 @@ class PackageController extends Controller
         $packages = Package::where('is_entertain', true)
             ->orderBy('created_at', 'desc')
             ->paginate(15);
+
         return response()->json($packages);
     }
 }

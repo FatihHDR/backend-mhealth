@@ -1,17 +1,16 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\ArticleController;
+use App\Http\Controllers\Api\V1\ChatbotController;
+use App\Http\Controllers\Api\V1\ErrorLogController;
+use App\Http\Controllers\Api\V1\EventController;
+use App\Http\Controllers\Api\V1\HospitalRelationController;
+use App\Http\Controllers\Api\V1\MedicalTechController;
 use App\Http\Controllers\Api\V1\PackageController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\RecomendationPackageController;
-use App\Http\Controllers\Api\V1\ChatbotController;  
-use App\Http\Controllers\Api\V1\ArticleController;
-use App\Http\Controllers\Api\V1\EventController;
-use App\Http\Controllers\Api\V1\ErrorLogController;
-use App\Http\Controllers\Api\V1\HospitalRelationController;
-use App\Http\Controllers\Api\V1\MedicalTechController;
 use App\Http\Controllers\Api\V1\UserController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -15,26 +14,27 @@ class HealthStepProgramSeeder extends Seeder
     public function run(): void
     {
         $csvFile = base_path('csv-files/program_langkah_kesehatan.csv');
-        
-        if (!file_exists($csvFile)) {
+
+        if (! file_exists($csvFile)) {
             $this->command->error("CSV file not found: {$csvFile}");
+
             return;
         }
 
         $file = fopen($csvFile, 'r');
         $header = fgetcsv($file); // Skip header row
-        
+
         $packages = [];
-        
+
         while (($row = fgetcsv($file)) !== false) {
             // Parse target langkah
             $targetLangkah = str_replace(['.', ' langkah'], '', $row[3]);
-            $targetLangkah = !empty($targetLangkah) ? (int) $targetLangkah : 0;
-            
+            $targetLangkah = ! empty($targetLangkah) ? (int) $targetLangkah : 0;
+
             // Tentukan harga berdasarkan hari (ini bisa disesuaikan)
             $basePrice = 50000; // Base price per day
             $price = $basePrice * (int) $row[0]; // Multiply by day number
-            
+
             $package = [
                 'id' => Str::uuid(),
                 'created_at' => now(),
@@ -57,13 +57,13 @@ class HealthStepProgramSeeder extends Seeder
                 'entertain_package' => json_encode([
                     'route' => $row[2],
                     'activity' => $row[4],
-                    'location' => $row[2]
+                    'location' => $row[2],
                 ]),
                 'included' => json_encode([
                     'activity' => $row[4],
                     'route_guide' => $row[2],
                     'health_monitoring' => 'Smartwatch tracking',
-                    'doctor_tips' => $row[5]
+                    'doctor_tips' => $row[5],
                 ]),
                 'hotel_name' => null,
                 'hotel_map' => null,
@@ -72,16 +72,16 @@ class HealthStepProgramSeeder extends Seeder
                 'spesific_gender' => 'Unisex',
                 'price' => $price,
             ];
-            
+
             $packages[] = $package;
         }
-        
+
         fclose($file);
-        
+
         // Insert data
         DB::table('package')->insert($packages);
-        
+
         $this->command->info('Health Step Program packages seeded successfully!');
-        $this->command->info('Total packages: ' . count($packages));
+        $this->command->info('Total packages: '.count($packages));
     }
 }

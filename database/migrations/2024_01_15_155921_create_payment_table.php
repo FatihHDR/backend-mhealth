@@ -26,7 +26,7 @@ return new class extends Migration
             $table->decimal('must_be_paid', 15, 2)->default(0);
             $table->string('payment_type')->nullable();
             $table->enum('status', ['Pending', 'Processing', 'Paid', 'Failed', 'Cancelled'])->default('Pending');
-            
+
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }

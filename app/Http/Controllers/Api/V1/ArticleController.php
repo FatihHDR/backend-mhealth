@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Models\Article;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\Article;
 
 class ArticleController extends Controller
 {
@@ -13,12 +12,14 @@ class ArticleController extends Controller
         $articles = Article::with('author')
             ->orderBy('created_at', 'desc')
             ->paginate(15);
+
         return response()->json($articles);
     }
 
     public function show($id)
     {
         $article = Article::with('author')->findOrFail($id);
+
         return response()->json($article);
     }
 
@@ -27,6 +28,7 @@ class ArticleController extends Controller
         $articles = Article::where('author_id', $userId)
             ->orderBy('created_at', 'desc')
             ->paginate(15);
+
         return response()->json($articles);
     }
 
@@ -37,6 +39,7 @@ class ArticleController extends Controller
             ->with('author')
             ->orderBy('published_at', 'desc')
             ->paginate(15);
+
         return response()->json($articles);
     }
 }

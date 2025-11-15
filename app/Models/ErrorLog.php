@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
 
 class ErrorLog extends Model
 {
     use HasUuids;
 
     protected $table = 'errors';
-    
+
     protected $fillable = [
         'error_code',
         'error_message',

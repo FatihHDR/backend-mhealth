@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('title')->nullable();
             $table->json('chat_mapping')->nullable()->comment('User (message, sent_at), Assistant (message, sent_at)');
             $table->enum('status', ['Active', 'Archived', 'Blocked', 'Clear'])->default('Active');
-            
+
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }

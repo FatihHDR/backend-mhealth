@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -23,7 +22,7 @@ class HospitalRelationSeeder extends Seeder
                 'specialist' => json_encode([
                     'Jantung & Pembuluh Darah',
                     'Fertilitas & Reproduksi',
-                    'Bedah Umum'
+                    'Bedah Umum',
                 ]),
                 'logo' => null,
                 'highlight_image' => null,
@@ -39,7 +38,7 @@ class HospitalRelationSeeder extends Seeder
                     'Ortopedi',
                     'Psikologi & Psikiatri',
                     'Kardiologi',
-                    'Bedah Plastik'
+                    'Bedah Plastik',
                 ]),
                 'logo' => null,
                 'highlight_image' => null,
@@ -55,7 +54,7 @@ class HospitalRelationSeeder extends Seeder
                     'Medical Check-Up',
                     'Spa & Wellness',
                     'Bedah Plastik',
-                    'Onkologi'
+                    'Onkologi',
                 ]),
                 'logo' => null,
                 'highlight_image' => null,
@@ -71,7 +70,7 @@ class HospitalRelationSeeder extends Seeder
                     'Medical Check-Up Premium',
                     'Wellness & Preventive Health',
                     'Kardiologi',
-                    'Ginekologi'
+                    'Ginekologi',
                 ]),
                 'logo' => null,
                 'highlight_image' => null,
@@ -87,7 +86,7 @@ class HospitalRelationSeeder extends Seeder
                     'Medical Check-Up',
                     'Endokrinologi',
                     'Nefrologi',
-                    'Onkologi'
+                    'Onkologi',
                 ]),
                 'logo' => null,
                 'highlight_image' => null,

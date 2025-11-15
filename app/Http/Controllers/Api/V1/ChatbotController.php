@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Models\Chatbot;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\Chatbot;
 
 class ChatbotController extends Controller
 {
@@ -13,12 +12,14 @@ class ChatbotController extends Controller
         $chatbots = Chatbot::with('user')
             ->orderBy('created_at', 'desc')
             ->paginate(15);
+
         return response()->json($chatbots);
     }
 
     public function show($id)
     {
         $chatbot = Chatbot::with('user')->findOrFail($id);
+
         return response()->json($chatbot);
     }
 
@@ -27,6 +28,7 @@ class ChatbotController extends Controller
         $chatbots = Chatbot::where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->paginate(15);
+
         return response()->json($chatbots);
     }
 
@@ -35,6 +37,7 @@ class ChatbotController extends Controller
         $chatbot = Chatbot::where('public_token', $token)
             ->with('user')
             ->firstOrFail();
+
         return response()->json($chatbot);
     }
 }

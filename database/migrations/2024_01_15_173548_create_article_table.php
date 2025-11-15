@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('category')->nullable();
             $table->json('content')->nullable();
             $table->string('thumbnail_image')->nullable();
-            
+
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
