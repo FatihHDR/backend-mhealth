@@ -170,13 +170,21 @@ test:coverage:
   stage: report
   dependencies:
     - composer:install
+  before_script:
+    - apt-get update -yqq
+    - apt-get install -yqq git libzip-dev libpq-dev libicu-dev libonig-dev libsqlite3-dev unzip
+    - docker-php-ext-install pdo_mysql pdo_sqlite zip intl mbstring
+    # Install Xdebug for code coverage
+    - pecl install xdebug
+    - docker-php-ext-enable xdebug
+    - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
   script:
     - cp .env.example .env
     - echo "DB_CONNECTION=sqlite" >> .env
     - echo "DB_DATABASE=:memory:" >> .env
     - php artisan key:generate
     - php artisan migrate --force --seed
-    - php -dxdebug.mode=coverage ./vendor/bin/phpunit --coverage-text --coverage-html coverage/
+    - php -dxdebug.mode=coverage ./vendor/bin/phpunit --coverage-text --coverage-html coverage/ --coverage-cobertura coverage/cobertura.xml
   coverage: '/^\s*Lines:\s*\d+.\d+\%/'
   artifacts:
     paths:
