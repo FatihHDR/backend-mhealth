@@ -7,8 +7,11 @@ image: php:8.2-fpm
 stages:
   - prepare
   - build
+  - analyze
   - test
   - quality
+  - security
+  - report
 
 # Cache dependencies for faster builds
 cache:
@@ -88,6 +91,48 @@ code:style:
     - ./vendor/bin/pint --test -v
   allow_failure: false
 
+# Code Complexity Analysis
+code:complexity:
+  extends: .php_base
+  stage: analyze
+  dependencies:
+    - composer:install
+  script:
+    - composer require --dev phpmetrics/phpmetrics -W
+    - ./vendor/bin/phpmetrics --report-html=phpmetrics app/
+  artifacts:
+    paths:
+      - phpmetrics/
+    expire_in: 1 week
+  allow_failure: true
+
+# Dependency Analysis
+dependencies:check:
+  extends: .php_base
+  stage: analyze
+  dependencies:
+    - composer:install
+  script:
+    - composer show --latest --direct
+    - echo "Checking for outdated packages..."
+    - composer outdated --direct || true
+  allow_failure: true
+
+# Database Schema Check
+database:check:
+  extends: .php_base
+  stage: analyze
+  dependencies:
+    - composer:install
+  script:
+    - cp .env.example .env
+    - echo "DB_CONNECTION=sqlite" >> .env
+    - echo "DB_DATABASE=:memory:" >> .env
+    - php artisan key:generate
+    - php artisan migrate --pretend
+    - echo "Migration check completed"
+  allow_failure: true
+
 # Static Analysis (Optional - requires larastan/phpstan)
 # code:analysis:
 #   extends: .php_base
@@ -101,11 +146,63 @@ code:style:
 # Security Check
 security:check:
   extends: .php_base
-  stage: quality
+  stage: security
   dependencies:
     - composer:install
   script:
     - composer audit
+  allow_failure: true
+
+# Security - Check for secrets in code
+security:secrets:
+  image: python:3.11-slim
+  stage: security
+  before_script:
+    - pip install detect-secrets
+  script:
+    - detect-secrets scan --baseline .secrets.baseline || true
+    - echo "Secret scanning completed"
+  allow_failure: true
+
+# Coverage Report
+test:coverage:
+  extends: .php_base
+  stage: report
+  dependencies:
+    - composer:install
+  script:
+    - cp .env.example .env
+    - echo "DB_CONNECTION=sqlite" >> .env
+    - echo "DB_DATABASE=:memory:" >> .env
+    - php artisan key:generate
+    - php artisan migrate --force --seed
+    - php -dxdebug.mode=coverage ./vendor/bin/phpunit --coverage-text --coverage-html coverage/
+  coverage: '/^\s*Lines:\s*\d+.\d+\%/'
+  artifacts:
+    paths:
+      - coverage/
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura.xml
+    expire_in: 1 week
+  allow_failure: true
+
+# API Documentation Check
+docs:api:
+  extends: .php_base
+  stage: report
+  dependencies:
+    - composer:install
+  script:
+    - cp .env.example .env
+    - php artisan key:generate
+    - php artisan route:list --json > routes.json
+    - echo "API routes documented in routes.json"
+  artifacts:
+    paths:
+      - routes.json
+    expire_in: 1 week
   allow_failure: true
 
 # PHPUnit Tests
