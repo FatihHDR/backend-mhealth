@@ -25,13 +25,13 @@ return [
         'http://10.214.57.58:3030',
         'http://localhost:3030',
         'http://localhost:4121',
-        'http://localhost:4212', 
+        'http://localhost:4212',
         'http://localhost:8080',
         'http://127.0.0.1:3000',
         'http://127.0.0.1:3001',
         'https://localhost:3000',
         'https://127.0.0.1:3000',
-        'https://staging.m-health.id'
+        'https://staging.m-health.id',
     ],
 
     'allowed_origins_patterns' => [
