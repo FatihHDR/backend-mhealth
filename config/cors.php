@@ -21,6 +21,7 @@ return [
 
     'allowed_origins' => [
         'http://localhost:3000',
+        'http://192.168.56.1:3030',
         'http://10.214.57.58:3030',
         'http://localhost:3030',
         'http://localhost:4121',
