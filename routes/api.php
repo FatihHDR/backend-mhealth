@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\ArticleController;
 use App\Http\Controllers\Api\V1\ChatbotController;
 use App\Http\Controllers\Api\V1\ErrorLogController;
 use App\Http\Controllers\Api\V1\EventController;
+use App\Http\Controllers\Api\V1\GeminiController;
 use App\Http\Controllers\Api\V1\HospitalRelationController;
 use App\Http\Controllers\Api\V1\MedicalTechController;
 use App\Http\Controllers\Api\V1\PackageController;
@@ -29,4 +30,5 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
     Route::apiResource('chatbots', ChatbotController::class);
     Route::apiResource('error-logs', ErrorLogController::class);
     Route::apiResource('users', UserController::class);
+    Route::post('gemini/generate', GeminiController::class);
 });
