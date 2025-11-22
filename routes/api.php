@@ -61,23 +61,6 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
-
-        Route::get('me', function (\Illuminate\Http\Request $request) {
-            // Debug logging: record headers, cookies, session and user for troubleshooting
-            \Illuminate\Support\Facades\Log::debug('API /me called', [
-                'headers' => $request->headers->all(),
-                'cookies' => $request->cookies->all(),
-                'session_id' => session()->getId(),
-                'session' => session()->all(),
-                'user' => optional($request->user())->id ?? null,
-            ]);
-
-            if (! $request->user()) {
-                \Illuminate\Support\Facades\Log::debug('API /me unauthenticated');
-            }
-
-            return response()->json(['user' => $request->user()]);
-        });
         Route::apiResource('users', UserController::class);
         Route::post('password/send-link', [AuthController::class, 'sendResetLinkAuthenticated']);
         Route::post('password/change', [AuthController::class, 'changePassword']);
