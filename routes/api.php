@@ -24,6 +24,8 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
     // Public auth endpoints
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
+    // Google sign-in (stateless): accept Google id_token or access_token
+    Route::post('auth/google', [AuthController::class, 'googleSignIn']);
 
     // Public resources (read-only or public access)
     Route::apiResource('recomendation-packages', RecomendationPackageController::class);

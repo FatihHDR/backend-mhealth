@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -135,6 +136,49 @@ class AuthController extends Controller
             ]);
 
             return response()->json(['message' => 'Logout failed'], 500);
+        }
+    }
+
+    /**
+     * Sign in / register using Google token from client (stateless)
+     * Accepts `token` (id_token or access_token) in request body.
+     */
+    public function googleSignIn(Request $request)
+    {
+        $request->validate([
+            'token' => 'required|string',
+        ]);
+
+        try {
+            $token = $request->input('token');
+
+            // Fetch user info from Google using provided token
+            $socialUser = Socialite::driver('google')->stateless()->userFromToken($token);
+
+            $email = $socialUser->getEmail();
+            $name = $socialUser->getName() ?? $socialUser->getNickname();
+
+            if (!$email) {
+                return response()->json(['message' => 'Google account has no email'], 422);
+            }
+
+            // Find or create user
+            $user = User::firstOrCreate(
+                ['email' => $email],
+                ['full_name' => $name ?? $email, 'password' => Hash::make(str()->random(32))]
+            );
+
+            // Create Sanctum token
+            $newToken = $user->createToken('api-token');
+            $plain = $newToken->plainTextToken;
+            $expiresAt = $newToken->accessToken->expires_at ?? null;
+
+            Log::info('User signed in with Google', ['user_id' => $user->id, 'email' => $user->email]);
+
+            return response()->json(['user' => $user, 'token' => $plain, 'expires_at' => $expiresAt]);
+        } catch (\Throwable $e) {
+            Log::error('Google sign-in error', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json(['message' => 'Google sign-in failed'], 500);
         }
     }
 }
