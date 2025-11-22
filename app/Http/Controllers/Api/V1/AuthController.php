@@ -101,14 +101,32 @@ class AuthController extends Controller
                 'token' => $plain,
                 'expires_at' => $expiresAt,
             ]);
+        } catch (ValidationException $e) {
+            // Validation errors are client errors; return 422 with details.
+            Log::warning('Login validation failed', [
+                'errors' => $e->errors(),
+                'input' => $request->except('password'),
+                'ip' => $request->ip(),
+            ]);
+
+            return response()->json([
+                'message' => 'Validasi gagal. Periksa input dan coba lagi.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Throwable $e) {
+            $errorId = (string) Str::uuid();
+
             Log::error('Login error', [
+                'error_id' => $errorId,
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'input' => $request->except('password'),
             ]);
 
-            return response()->json(['message' => 'Login failed'], 500);
+            return response()->json([
+                'message' => 'Login gagal — terjadi kesalahan pada server. Simpan "error_id" dan hubungi dukungan jika perlu.',
+                'error_id' => $errorId,
+            ], 500);
         }
     }
 
