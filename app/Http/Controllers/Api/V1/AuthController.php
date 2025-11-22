@@ -177,6 +177,25 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         try {
+            // Debugging: log parsed input and a masked payload (do NOT log raw password).
+            // Keep minimal info for debugging; mask any password present in the raw JSON.
+            $raw = $request->getContent();
+            $maskedPayload = null;
+            if (! empty($raw)) {
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    if (array_key_exists('password', $decoded)) {
+                        $decoded['password'] = '***';
+                    }
+                    $maskedPayload = $decoded;
+                }
+            }
+
+            Log::debug('Login request input (masked)', [
+                'input' => $request->except('password'),
+                'payload' => $maskedPayload,
+            ]);
+
             $data = $request->validate([
                 'email' => 'required|email',
                 'password' => 'required|string',
@@ -202,11 +221,17 @@ class AuthController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            // Create an HttpOnly, Secure cookie for the token so client JS cannot read it.
-            // Cookie lifetime: 7 days (in minutes). Secure flag enabled only in production.
+            // Create an HttpOnly cookie for the token using env-driven session settings.
+            // Cookie lifetime: 7 days (in minutes).
             $minutes = 60 * 24 * 7;
-            $secure = app()->environment('production');
-            $cookie = cookie('api_token', $plain, $minutes, '/', null, $secure, true, false, 'Lax');
+
+            // Read cookie options from env/config so behavior can be controlled per environment
+            $domain = env('SESSION_DOMAIN', null);
+            $secure = (bool) env('SESSION_SECURE_COOKIE', app()->environment('production'));
+            $sameSite = env('SESSION_SAME_SITE', 'none');
+
+            // Build cookie with explicit SameSite value from config. Note: SameSite=None requires Secure=true.
+            $cookie = cookie('api_token', $plain, $minutes, '/', $domain, $secure, true, false, $sameSite);
 
             // Return user and expiry but do not include the raw token in the JSON body.
             return response()->json([

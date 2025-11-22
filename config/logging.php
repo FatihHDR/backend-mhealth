@@ -123,6 +123,21 @@ return [
             'handler' => NullHandler::class,
         ],
 
+        // Custom channels expected by environment
+        'laravel-cloud-socket' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/laravel-cloud-socket.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'replace_placeholders' => true,
+        ],
+
+        'nightwatch' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/nightwatch.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'replace_placeholders' => true,
+        ],
+
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],

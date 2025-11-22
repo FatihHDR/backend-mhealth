@@ -20,6 +20,7 @@ return [
     'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
     'allowed_origins' => [
+        'http://192.168.18.34:3030',
         'http://localhost:3000',
         'http://192.168.56.1:3030',
         'http://10.214.57.58:3030',
