@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -179,6 +181,67 @@ class AuthController extends Controller
         } catch (\Throwable $e) {
             Log::error('Google sign-in error', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json(['message' => 'Google sign-in failed'], 500);
+        }
+    }
+
+    /**
+     * Redirect the user to Google's OAuth page (web flow)
+     */
+    public function redirectToProvider()
+    {
+        return Socialite::driver('google')->redirect();
+    }
+
+    /**
+     * Obtain the user information from Google and login/create local user (web callback)
+     * Redirects to FRONTEND_URL with token as query param (optional).
+     */
+    public function handleProviderCallback()
+    {
+        try {
+            $googleUser = Socialite::driver('google')->user();
+
+            $email = $googleUser->getEmail();
+            $name = $googleUser->getName() ?? $googleUser->getNickname();
+
+            if (!$email) {
+                return redirect(config('app.url'));
+            }
+
+            $user = User::updateOrCreate(
+                ['email' => $email],
+                [
+                    'full_name' => $name ?? $email,
+                ]
+            );
+
+            // Save provider data
+            $user->google_id = $googleUser->getId();
+            if (property_exists($googleUser, 'token')) {
+                $user->google_token = $googleUser->token;
+            }
+            if (property_exists($googleUser, 'refreshToken')) {
+                $user->google_refresh_token = $googleUser->refreshToken;
+            }
+            $user->save();
+
+            // Login the user
+            Auth::login($user);
+
+            // Create Sanctum token to pass to frontend (optional)
+            $newToken = $user->createToken('api-token');
+            $plain = $newToken->plainTextToken;
+
+            $frontend = env('FRONTEND_URL');
+            if ($frontend) {
+                // Redirect with token in query string (frontend should read and store securely)
+                return Redirect::away(rtrim($frontend, '/') . '/?token=' . $plain);
+            }
+
+            return redirect('/');
+        } catch (\Throwable $e) {
+            Log::error('Google callback error', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return redirect(config('app.url'));
         }
     }
 }

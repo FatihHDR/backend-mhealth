@@ -29,6 +29,9 @@ class User extends Authenticatable
         'weight',
         'height',
         'oauth',
+        'google_id',
+        'google_token',
+        'google_refresh_token',
         'role',
     ];
 
