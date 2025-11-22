@@ -40,6 +40,10 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
     // Protected routes - require authenticated user with Sanctum
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
+        // Return current authenticated user
+        Route::get('me', function (\Illuminate\Http\Request $request) {
+            return response()->json(['user' => $request->user()]);
+        });
         Route::apiResource('users', UserController::class);
     });
 });
