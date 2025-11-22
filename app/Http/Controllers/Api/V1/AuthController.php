@@ -66,6 +66,7 @@ class AuthController extends Controller
         }
     }
 
+
     /**
      * Login user with email and password
      */
@@ -106,6 +107,7 @@ class AuthController extends Controller
             // Return user and expiry but do not include the raw token in the JSON body.
             return response()->json([
                 'user' => $user,
+                'token' => $plain,
                 'expires_at' => $expiresAt,
             ])->cookie($cookie);
         } catch (ValidationException $e) {
