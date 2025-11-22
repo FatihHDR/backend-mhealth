@@ -21,13 +21,13 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], function () {
-    // Public auth endpoints
+    // Public auth
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
-    // Google sign-in (stateless): accept Google id_token or access_token
+    // Google sign-in (stateless)
     Route::post('auth/google', [AuthController::class, 'googleSignIn']);
 
-    // Public resources (read-only or public access)
+    // Public resources
     Route::apiResource('recomendation-packages', RecomendationPackageController::class);
     Route::apiResource('articles', ArticleController::class);
     Route::apiResource('events', EventController::class);
@@ -39,10 +39,9 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
     Route::apiResource('error-logs', ErrorLogController::class);
     Route::post('gemini/generate', GeminiController::class);
 
-    // Protected routes - require authenticated user with Sanctum
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
-        // Return current authenticated user
+
         Route::get('me', function (\Illuminate\Http\Request $request) {
             return response()->json(['user' => $request->user()]);
         });
