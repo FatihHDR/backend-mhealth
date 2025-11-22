@@ -26,7 +26,6 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
     Route::post('login', [AuthController::class, 'login']);
     // Google sign-in (stateless)
     Route::post('auth/google', [AuthController::class, 'googleSignIn']);
-
     // Password reset submission endpoint (public) used by frontend reset form
     Route::post('password/reset', [AuthController::class, 'resetPassword']);
 
@@ -60,6 +59,23 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
     });
 
     Route::middleware('auth:sanctum')->group(function () {
+        // Authenticated 'me' endpoint — returns current user and useful debug info.
+        Route::get('me', function (\Illuminate\Http\Request $request) {
+            \Illuminate\Support\Facades\Log::debug('API /me called', [
+                'headers' => $request->headers->all(),
+                'cookies' => $request->cookies->all(),
+                'session_id' => session()->getId(),
+                'session' => session()->all(),
+                'user' => optional($request->user())->id ?? null,
+            ]);
+
+            if (! $request->user()) {
+                \Illuminate\Support\Facades\Log::debug('API /me unauthenticated');
+            }
+
+            return response()->json(['user' => $request->user()]);
+        });
+
         Route::post('logout', [AuthController::class, 'logout']);
         Route::apiResource('users', UserController::class);
         Route::post('password/send-link', [AuthController::class, 'sendResetLinkAuthenticated']);
