@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\ArticleController;
+use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ChatbotController;
 use App\Http\Controllers\Api\V1\ErrorLogController;
 use App\Http\Controllers\Api\V1\EventController;
@@ -20,6 +21,11 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], function () {
+    // Public auth endpoints
+    Route::post('register', [AuthController::class, 'register']);
+    Route::post('login', [AuthController::class, 'login']);
+
+    // Public resources (read-only or public access)
     Route::apiResource('recomendation-packages', RecomendationPackageController::class);
     Route::apiResource('articles', ArticleController::class);
     Route::apiResource('events', EventController::class);
@@ -29,6 +35,11 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
     Route::apiResource('payments', PaymentController::class);
     Route::apiResource('chatbots', ChatbotController::class);
     Route::apiResource('error-logs', ErrorLogController::class);
-    Route::apiResource('users', UserController::class);
     Route::post('gemini/generate', GeminiController::class);
+
+    // Protected routes - require authenticated user with Sanctum
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('logout', [AuthController::class, 'logout']);
+        Route::apiResource('users', UserController::class);
+    });
 });

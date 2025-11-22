@@ -20,9 +20,9 @@ class GeminiClient
         $this->apiKey = (string) config('services.gemini.key');
     }
 
-    /**
-     * Send a prompt to Gemini and return the decoded JSON response.
-     */
+        /**
+         * Send a prompt to Gemini and return the decoded JSON response.
+         */
     public function generateText(string $prompt, array $options = []): array
     {
         $payload = array_merge([
