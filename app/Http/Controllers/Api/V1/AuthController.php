@@ -13,6 +13,8 @@ use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
@@ -64,6 +66,107 @@ class AuthController extends Controller
 
             return response()->json(['message' => 'Registration failed'], 500);
         }
+    }
+
+    /**
+     * Send password reset link to the currently authenticated user's email.
+     * The email will be sent from the configured noreply address (config/mail.from).
+     */
+    public function sendResetLinkAuthenticated(Request $request)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $email = $user->email;
+
+        // Ensure mail 'from' is set to noreply; fall back to config/mail.from if available.
+        $fromAddress = config('mail.from.address', 'noreply@localhost');
+        $fromName = config('mail.from.name', 'No Reply');
+        Mail::alwaysFrom($fromAddress, $fromName);
+
+        $status = Password::sendResetLink(['email' => $email]);
+
+        if ($status === Password::RESET_LINK_SENT) {
+            Log::info('Password reset link sent', ['user_id' => $user->id, 'email' => $email, 'ip' => $request->ip()]);
+            return response()->json(['message' => 'Tautan reset password telah dikirim ke email Anda.'], 200);
+        }
+
+        Log::warning('Failed to send password reset link', ['user_id' => $user->id, 'email' => $email, 'status' => $status]);
+        return response()->json(['message' => 'Gagal mengirim tautan reset password. Silakan coba lagi.'], 500);
+    }
+
+    /**
+     * Allow authenticated user to change their password (current + new).
+     * Revokes the current access token after successful change.
+     */
+    public function changePassword(Request $request)
+    {
+        $data = $request->validate([
+            'current_password' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        if (! Hash::check($data['current_password'], $user->password)) {
+            return response()->json(['message' => 'Password saat ini tidak cocok.'], 422);
+        }
+
+        $user->password = Hash::make($data['password']);
+        $user->save();
+
+        // Revoke current token so user must re-auth (optional security step)
+        if ($request->user()->currentAccessToken()) {
+            $request->user()->currentAccessToken()->delete();
+        }
+
+        Log::info('User changed password', ['user_id' => $user->id, 'ip' => $request->ip()]);
+
+        return response()->json(['message' => 'Password berhasil diperbarui. Silakan login ulang.']);
+    }
+
+    /**
+     * Reset password using token (for frontend password reset flow).
+     * Expects: token, email, password, password_confirmation
+     */
+    public function resetPassword(Request $request)
+    {
+        $data = $request->validate([
+            'token' => 'required|string',
+            'email' => 'required|email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $status = Password::reset(
+            [
+                'email' => $data['email'],
+                'password' => $data['password'],
+                'password_confirmation' => $data['password_confirmation'] ?? $data['password'],
+                'token' => $data['token'],
+            ],
+            function ($user, $password) use ($request) {
+                $user->password = Hash::make($password);
+                $user->save();
+
+                // Revoke all tokens (optional): remove all personal access tokens
+                if (method_exists($user, 'tokens')) {
+                    $user->tokens()->delete();
+                }
+
+                Log::info('Password reset via API', ['user_id' => $user->id, 'ip' => $request->ip()]);
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return response()->json(['message' => 'Password berhasil direset. Silakan login dengan password baru.']);
+        }
+
+        return response()->json(['message' => __($status)], 422);
     }
 
 

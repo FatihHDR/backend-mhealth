@@ -27,6 +27,9 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
     // Google sign-in (stateless)
     Route::post('auth/google', [AuthController::class, 'googleSignIn']);
 
+    // Password reset submission endpoint (public) used by frontend reset form
+    Route::post('password/reset', [AuthController::class, 'resetPassword']);
+
     // Public resources
     Route::apiResource('recomendation-packages', RecomendationPackageController::class);
     Route::apiResource('articles', ArticleController::class);
@@ -46,5 +49,6 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
             return response()->json(['user' => $request->user()]);
         });
         Route::apiResource('users', UserController::class);
-    });
+        Route::post('password/send-link', [AuthController::class, 'sendResetLinkAuthenticated']);
+        Route::post('password/change', [AuthController::class, 'changePassword']);    });
 });
