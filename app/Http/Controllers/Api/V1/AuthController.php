@@ -12,6 +12,7 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cookie;
 
 class AuthController extends Controller
 {
@@ -96,11 +97,17 @@ class AuthController extends Controller
                 'ip' => $request->ip(),
             ]);
 
+            // Create an HttpOnly, Secure cookie for the token so client JS cannot read it.
+            // Cookie lifetime: 7 days (in minutes). Secure flag enabled only in production.
+            $minutes = 60 * 24 * 7;
+            $secure = app()->environment('production');
+            $cookie = cookie('api_token', $plain, $minutes, '/', null, $secure, true, false, 'Lax');
+
+            // Return user and expiry but do not include the raw token in the JSON body.
             return response()->json([
                 'user' => $user,
-                'token' => $plain,
                 'expires_at' => $expiresAt,
-            ]);
+            ])->cookie($cookie);
         } catch (ValidationException $e) {
             // Validation errors are client errors; return 422 with details.
             Log::warning('Login validation failed', [
@@ -148,14 +155,20 @@ class AuthController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            return response()->json(['message' => 'Logged out']);
+            // Queue cookie removal so the Set-Cookie header clears the token on the client
+            Cookie::queue(Cookie::forget('api_token'));
+
+            return response()->json(['message' => 'Logged out'])->withCookie(Cookie::forget('api_token'));
         } catch (\Throwable $e) {
             Log::error('Logout error', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json(['message' => 'Logout failed'], 500);
+            // Attempt to clear cookie even on error
+            Cookie::queue(Cookie::forget('api_token'));
+
+            return response()->json(['message' => 'Logout failed'], 500)->withCookie(Cookie::forget('api_token'));
         }
     }
 
