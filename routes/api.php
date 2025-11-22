@@ -50,5 +50,6 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
         });
         Route::apiResource('users', UserController::class);
         Route::post('password/send-link', [AuthController::class, 'sendResetLinkAuthenticated']);
-        Route::post('password/change', [AuthController::class, 'changePassword']);    });
+        Route::post('password/change', [AuthController::class, 'changePassword']);
+    });
 });

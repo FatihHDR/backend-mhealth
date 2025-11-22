@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Redirect;
 use App\Http\Controllers\Api\V1\AuthController;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
@@ -18,10 +18,11 @@ Route::get('password/reset/{token}', function ($token) {
     $email = request()->query('email');
 
     if ($frontend) {
-        $url = rtrim($frontend, '/') . '/password/reset?token=' . $token;
+        $url = rtrim($frontend, '/').'/password/reset?token='.$token;
         if ($email) {
-            $url .= '&email=' . urlencode($email);
+            $url .= '&email='.urlencode($email);
         }
+
         return Redirect::away($url);
     }
 

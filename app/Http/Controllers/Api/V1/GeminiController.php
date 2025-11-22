@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Services\GeminiClient;
 use App\Models\Package as PackageModel;
+use App\Services\GeminiClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,7 +16,7 @@ class GeminiController extends Controller
     private array $emergencyKeywords = [
         'emergency', 'darurat', 'chest pain', 'severe bleeding', 'bleeding', 'unconscious', 'pingsan',
         'kejang', 'shortness of breath', 'suffocat', 'suffocating', 'suicide', 'bunuh diri', 'mati',
-        'stopped breathing', 'not breathing', 'no pulse', 'cardiac arrest'
+        'stopped breathing', 'not breathing', 'no pulse', 'cardiac arrest',
     ];
 
     public function __invoke(Request $request, GeminiClient $client): JsonResponse
@@ -27,12 +27,12 @@ class GeminiController extends Controller
         ]);
 
         // Persona/system instruction for Mei
-        $systemInstruction = "You are Mei, a gentle, empathetic, and informative virtual health assistant. " .
-            "Speak naturally, politely, and with a warm feminine tone as a caring female health assistant. " .
-            "When the user's message suggests an emergency, immediately advise them to call {$this->emergencyNumber} " .
+        $systemInstruction = 'You are Mei, a gentle, empathetic, and informative virtual health assistant. '.
+            'Speak naturally, politely, and with a warm feminine tone as a caring female health assistant. '.
+            "When the user's message suggests an emergency, immediately advise them to call {$this->emergencyNumber} ".
             "and include the word 'consultation' at the end of your message to prompt for a professional follow-up.";
 
-        $fullPrompt = $systemInstruction . "\n\nUser: " . $validated['prompt'];
+        $fullPrompt = $systemInstruction."\n\nUser: ".$validated['prompt'];
 
         $response = $client->generateText(
             $fullPrompt,
@@ -41,31 +41,31 @@ class GeminiController extends Controller
 
         $replyText = $this->extractTextFromResponse($response);
 
-        $urgent = $this->detectEmergency($validated['prompt'] . ' ' . $replyText);
+        $urgent = $this->detectEmergency($validated['prompt'].' '.$replyText);
 
         if ($urgent) {
             // If urgent, ensure advice to call emergency number and include consultation keyword
             $suffix = "\n\nJika ini darurat, segera hubungi {$this->emergencyNumber}.\n\nconsultation";
             if (stripos($replyText, (string) $this->emergencyNumber) === false) {
-                $replyText = trim($replyText) . $suffix;
+                $replyText = trim($replyText).$suffix;
             } elseif (stripos($replyText, 'consultation') === false) {
-                $replyText = trim($replyText) . "\n\nconsultation";
+                $replyText = trim($replyText)."\n\nconsultation";
             }
         }
 
         // Detect package recommendations based on the prompt and reply text
-        $packageSuggestions = $this->detectPackageRecommendations($validated['prompt'] . ' ' . $replyText);
+        $packageSuggestions = $this->detectPackageRecommendations($validated['prompt'].' '.$replyText);
 
         $actions = [];
         if ($urgent) {
             $actions[] = [
                 'type' => 'consultation',
                 'label' => 'Konsultasi dengan Dokter',
-                'url' => '/consultation'
+                'url' => '/consultation',
             ];
         }
 
-        if (!empty($packageSuggestions)) {
+        if (! empty($packageSuggestions)) {
             $actions[] = [
                 'type' => 'packages',
                 'label' => 'Package yang Disarankan',
@@ -116,7 +116,7 @@ class GeminiController extends Controller
         }
 
         // If explicit matches found, return them
-        if (!empty($matched)) {
+        if (! empty($matched)) {
             return $matched;
         }
 
@@ -132,6 +132,7 @@ class GeminiController extends Controller
                     'image' => $pkg->image,
                 ];
             }
+
             return $suggest;
         }
 
@@ -146,6 +147,7 @@ class GeminiController extends Controller
                 return true;
             }
         }
+
         return false;
     }
 
@@ -172,6 +174,7 @@ class GeminiController extends Controller
             if ($clean !== '') {
                 $out[] = $clean;
             }
+
             return;
         }
 

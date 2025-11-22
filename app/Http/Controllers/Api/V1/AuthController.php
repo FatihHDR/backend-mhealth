@@ -6,15 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
-use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -90,10 +90,12 @@ class AuthController extends Controller
 
         if ($status === Password::RESET_LINK_SENT) {
             Log::info('Password reset link sent', ['user_id' => $user->id, 'email' => $email, 'ip' => $request->ip()]);
+
             return response()->json(['message' => 'Tautan reset password telah dikirim ke email Anda.'], 200);
         }
 
         Log::warning('Failed to send password reset link', ['user_id' => $user->id, 'email' => $email, 'status' => $status]);
+
         return response()->json(['message' => 'Gagal mengirim tautan reset password. Silakan coba lagi.'], 500);
     }
 
@@ -169,7 +171,6 @@ class AuthController extends Controller
         return response()->json(['message' => __($status)], 422);
     }
 
-
     /**
      * Login user with email and password
      */
@@ -181,7 +182,7 @@ class AuthController extends Controller
                 'password' => 'required|string',
             ]);
 
-            if (!Auth::attempt(['email' => $data['email'], 'password' => $data['password']])) {
+            if (! Auth::attempt(['email' => $data['email'], 'password' => $data['password']])) {
                 Log::warning('Login failed: invalid credentials', [
                     'email' => $data['email'],
                     'ip' => $request->ip(),
@@ -296,7 +297,7 @@ class AuthController extends Controller
             $email = $socialUser->getEmail();
             $name = $socialUser->getName() ?? $socialUser->getNickname();
 
-            if (!$email) {
+            if (! $email) {
                 return response()->json(['message' => 'Google account has no email'], 422);
             }
 
@@ -316,6 +317,7 @@ class AuthController extends Controller
             return response()->json(['user' => $user, 'token' => $plain, 'expires_at' => $expiresAt]);
         } catch (\Throwable $e) {
             Log::error('Google sign-in error', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+
             return response()->json(['message' => 'Google sign-in failed'], 500);
         }
     }
@@ -340,7 +342,7 @@ class AuthController extends Controller
             $email = $googleUser->getEmail();
             $name = $googleUser->getName() ?? $googleUser->getNickname();
 
-            if (!$email) {
+            if (! $email) {
                 return redirect(config('app.url'));
             }
 
@@ -371,12 +373,13 @@ class AuthController extends Controller
             $frontend = env('FRONTEND_URL');
             if ($frontend) {
                 // Redirect with token in query string (frontend should read and store securely)
-                return Redirect::away(rtrim($frontend, '/') . '/?token=' . $plain);
+                return Redirect::away(rtrim($frontend, '/').'/?token='.$plain);
             }
 
             return redirect('/');
         } catch (\Throwable $e) {
             Log::error('Google callback error', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+
             return redirect(config('app.url'));
         }
     }

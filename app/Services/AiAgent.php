@@ -12,7 +12,7 @@ class AiAgent
     private array $emergencyKeywords = [
         'emergency', 'darurat', 'chest pain', 'severe bleeding', 'bleeding', 'unconscious', 'pingsan',
         'kejang', 'shortness of breath', 'suffocat', 'suffocating', 'suicide', 'bunuh diri', 'mati',
-        'stopped breathing', 'not breathing', 'no pulse', 'cardiac arrest'
+        'stopped breathing', 'not breathing', 'no pulse', 'cardiac arrest',
     ];
 
     public function __construct(GeminiClient $client)
@@ -24,28 +24,24 @@ class AiAgent
      * Respond to a user prompt using the Gemini client while enforcing the "Mei" persona
      * and detecting urgent/emergency content. Returns an array with reply, raw response
      * and an urgent flag.
-     *
-     * @param string $prompt
-     * @param array $options
-     * @return array
      */
     public function respondTo(string $prompt, array $options = []): array
     {
-        $systemInstruction = "You are Mei, a gentle, empathetic, and informative virtual health assistant. " .
-            "Speak naturally, politely, and with a warm feminine tone as a caring female health assistant. " .
-            "When the user's message suggests an emergency, immediately advise them to call {$this->emergencyNumber} " .
+        $systemInstruction = 'You are Mei, a gentle, empathetic, and informative virtual health assistant. '.
+            'Speak naturally, politely, and with a warm feminine tone as a caring female health assistant. '.
+            "When the user's message suggests an emergency, immediately advise them to call {$this->emergencyNumber} ".
             "and include the word 'consultation' at the end of your message to prompt for a professional follow-up.";
 
-        $fullPrompt = $systemInstruction . "\n\nUser: " . $prompt;
+        $fullPrompt = $systemInstruction."\n\nUser: ".$prompt;
 
         $response = $this->client->generateText($fullPrompt, $options);
 
         $replyText = $this->extractTextFromResponse($response);
 
-        $urgent = $this->detectEmergency($prompt . ' ' . $replyText);
+        $urgent = $this->detectEmergency($prompt.' '.$replyText);
 
         if ($urgent && stripos($replyText, 'consultation') === false) {
-            $replyText = trim($replyText) . "\n\nconsultation";
+            $replyText = trim($replyText)."\n\nconsultation";
         }
 
         return [
@@ -63,15 +59,13 @@ class AiAgent
                 return true;
             }
         }
+
         return false;
     }
 
     /**
      * Try to extract the most relevant textual reply from the Gemini response array.
      * Uses a heuristic: collect all string values and return the longest one.
-     *
-     * @param array $response
-     * @return string
      */
     private function extractTextFromResponse(array $response): string
     {
@@ -97,6 +91,7 @@ class AiAgent
             if ($clean !== '') {
                 $out[] = $clean;
             }
+
             return;
         }
 
