@@ -21,7 +21,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'full_name',
         'email',
         'password',
         'profile_picture',
@@ -80,5 +80,13 @@ class User extends Authenticatable
     public function articles(): HasMany
     {
         return $this->hasMany(Article::class, 'author_id');
+    }
+
+    /**
+     * Provide a virtual `name` attribute mapped to `full_name` for backward compatibility.
+     */
+    public function getNameAttribute(): ?string
+    {
+        return $this->attributes['full_name'] ?? null;
     }
 }
