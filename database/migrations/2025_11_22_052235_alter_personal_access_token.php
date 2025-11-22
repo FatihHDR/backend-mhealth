@@ -18,12 +18,10 @@ return new class extends Migration
         $driver = config('database.connections.' . ($connection ?? '') . '.driver');
 
         if ($driver === 'pgsql') {
-            // Change column type to varchar using a safe USING clause.
             DB::statement("ALTER TABLE personal_access_tokens ALTER COLUMN tokenable_id TYPE varchar USING tokenable_id::varchar;");
         } elseif ($driver === 'mysql' || $driver === 'mysqli') {
             DB::statement("ALTER TABLE personal_access_tokens MODIFY tokenable_id varchar(255);");
         } else {
-            // Fallback: try the schema builder (may require doctrine/dbal for type changes).
             Schema::table('personal_access_tokens', function (Blueprint $table) {
                 $table->string('tokenable_id')->change();
             });
