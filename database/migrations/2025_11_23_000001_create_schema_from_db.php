@@ -166,15 +166,14 @@ return new class extends Migration
             $table->text('discount_price')->nullable();
             $table->string('status')->default('draft');
 
-            $table->foreign('hotel_id')->references('id')->on('vendor')->onDelete('cascade');
-            // note: original SQL had a FK referencing public.hotel(id) using same id field; skipped circular FK
+            $table->foreign('hotel_id')->references('id')->on('hotel')->onDelete('cascade');
         });
 
         // article_category
         Schema::create('article_category', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->timestampTz('created_at')->useCurrent();
-            $table->timestampTz('udpated_at')->nullable()->default(DB::raw('now()'));
+            $table->timestampTz('updated_at')->nullable()->default(DB::raw('now()'));
             $table->text('en_category');
             $table->text('id_category');
             $table->text('en_description')->nullable();
