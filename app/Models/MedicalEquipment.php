@@ -5,34 +5,30 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
-class Package extends Model
+class MedicalEquipment extends Model
 {
     use HasUuids;
 
-    protected $table = 'packages';
+    protected $table = 'medical_equipment';
     protected $keyType = 'string';
     public $incrementing = false;
 
     protected $fillable = [
-        'name',
-        'description',
-        'price',
-        'duration_by_day',
-        'duration_by_night',
-        'medical_package',
-        'entertain_package',
-        'is_medical',
-        'is_entertain',
+        'slug',
+        'en_title',
+        'id_title',
+        'en_description',
+        'id_description',
         'spesific_gender',
-        'image',
-        'location',
+        'highlight_image',
+        'reference_image',
+        'real_price',
+        'discount_price',
+        'status',
     ];
 
     protected $casts = [
         'reference_image' => 'array',
-        'included' => 'array',
-        'real_price' => 'string',
-        'discount_price' => 'string',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

@@ -10,22 +10,25 @@ class Payment extends Model
 {
     use HasUuids;
 
-    protected $table = 'payment';
+    protected $table = 'payment_records';
+    protected $keyType = 'string';
+    public $incrementing = false;
 
     protected $fillable = [
-        'user_id',
-        'product_id',
-        'product_name',
-        'amount',
-        'status',
-        'payment_method',
-        'payment_url',
-        'expired_at',
+        'transaction_id',
+        'fullname',
+        'email',
+        'phone',
+        'address',
+        'payment_status',
+        'packages_id',
+        'medical_id',
+        'wellness_id',
+        'consultation_id',
+        'medical_equipment_id',
     ];
 
     protected $casts = [
-        'amount' => 'decimal:2',
-        'expired_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

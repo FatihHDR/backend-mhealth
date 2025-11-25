@@ -5,35 +5,43 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
-class Package extends Model
+class Medical extends Model
 {
     use HasUuids;
 
-    protected $table = 'packages';
+    protected $table = 'medical';
     protected $keyType = 'string';
     public $incrementing = false;
 
     protected $fillable = [
-        'name',
-        'description',
-        'price',
+        'slug',
+        'en_title',
+        'id_title',
+        'en_tagline',
+        'id_tagline',
+        'highlight_image',
+        'reference_image',
         'duration_by_day',
         'duration_by_night',
-        'medical_package',
-        'entertain_package',
-        'is_medical',
-        'is_entertain',
         'spesific_gender',
-        'image',
-        'location',
+        'en_medical_package_content',
+        'id_medical_package_content',
+        'included',
+        'vendor_id',
+        'real_price',
+        'discount_price',
+        'status',
     ];
 
     protected $casts = [
         'reference_image' => 'array',
         'included' => 'array',
-        'real_price' => 'string',
-        'discount_price' => 'string',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    public function vendor()
+    {
+        return $this->belongsTo(Vendor::class);
+    }
 }

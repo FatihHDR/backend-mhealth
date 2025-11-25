@@ -11,16 +11,22 @@ class Article extends Model
     use HasUuids;
 
     protected $table = 'article';
+    protected $keyType = 'string';
+    public $incrementing = false;
 
     protected $fillable = [
-        'author_id',
-        'title',
-        'content',
-        'image',
-        'published_at',
+        'slug',
+        'en_title',
+        'id_title',
+        'author',
+        'category',
+        'en_content',
+        'id_content',
+        'status',
     ];
 
     protected $casts = [
+        'category' => 'array',
         'published_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -28,6 +34,6 @@ class Article extends Model
 
     public function author(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'author_id');
+        return $this->belongsTo(Author::class, 'author');
     }
 }
