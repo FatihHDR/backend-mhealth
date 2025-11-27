@@ -37,6 +37,7 @@ class WellnessListSeeder extends Seeder
 
         $rows = [];
         $hotelIndex = 0;
+        $processedHotelIds = []; // Track processed hotels to avoid duplicates
 
         while (($row = fgetcsv($h)) !== false) {
             // CSV headers: id,hospital_name,description,location_map,logo,highlight_image
@@ -61,6 +62,15 @@ class WellnessListSeeder extends Seeder
                 $hotel = $hotels->first(); // Fallback to first hotel
             }
 
+            // Skip if this hotel ID has already been processed
+            if (in_array($hotel->id, $processedHotelIds)) {
+                $this->command->warn("Skipping duplicate hotel: {$hotel->name}");
+                continue;
+            }
+
+            // Mark this hotel as processed
+            $processedHotelIds[] = $hotel->id;
+
             // Find matching vendor for hotel_id
             $vendorId = DB::table('vendor')
                 ->where('name', 'ILIKE', '%' . $hotel->name . '%')
@@ -71,19 +81,19 @@ class WellnessListSeeder extends Seeder
             }
 
             $map = [
-                'id' => $hotel->id, // CRITICAL: Use hotel's ID as wellness ID
+                'id' => $hotel->id, // Use hotel's ID as wellness ID (FK constraint)
                 'en_title' => $name,
                 'id_title' => $name,
                 'en_tagline' => $description,
                 'id_tagline' => $description,
                 'highlight_image' => $highlight_image ?: 'images/default-wellness.png',
-                'reference_image' => DB::raw("ARRAY[]::text[]"),
+                'reference_image' => json_encode([]), // Encode to JSON for jsonb column
                 'duration_by_day' => 1,
                 'duration_by_night' => null,
                 'spesific_gender' => 'both',
                 'en_wellness_package_content' => $description,
                 'id_wellness_package_content' => $description,
-                'included' => null,
+                'included' => json_encode([]), // Encode to JSON for jsonb column
                 'hotel_id' => $vendorId, // This references vendor table
                 'real_price' => '100000',
                 'discount_price' => null,
@@ -97,24 +107,44 @@ class WellnessListSeeder extends Seeder
 
             $rows[] = [
                 'slug' => $slug,
+                'id' => $hotel->id,
                 'data' => $map
             ];
         }
 
         fclose($h);
 
-        if (empty($rows)) return;
+        if (empty($rows)) {
+            $this->command->warn('No wellness data to seed.');
+            return;
+        }
 
         try {
             foreach ($rows as $r) {
-                DB::table('wellness')->updateOrInsert(
-                    ['slug' => $r['slug']], 
-                    $r['data']
-                );
+                // Check if wellness with this ID already exists
+                $existing = DB::table('wellness')->where('id', $r['id'])->first();
+                
+                if ($existing) {
+                    // Update existing record (exclude 'id' from update data)
+                    $updateData = $r['data'];
+                    unset($updateData['id']); // Don't update primary key
+                    
+                    DB::table('wellness')
+                        ->where('id', $r['id'])
+                        ->update($updateData);
+                    
+                    $this->command->info("Updated wellness: {$r['slug']}");
+                } else {
+                    // Insert new record
+                    DB::table('wellness')->insert($r['data']);
+                    $this->command->info("Inserted wellness: {$r['slug']}");
+                }
             }
+            
             $this->command->info('WellnessListSeeder finished successfully.');
         } catch (\Throwable $e) {
             $this->command->error('WellnessListSeeder failed: '.$e->getMessage());
+            throw $e; // Re-throw to see full stack trace
         }
     }
 }

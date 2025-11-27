@@ -28,19 +28,27 @@ class MedicalEquipmentListSeeder extends Seeder
             $price = $row[3] ?? null;
             $image = $row[4] ?? null;
 
-            // Build reference_image array
+            // Skip if name is empty
+            if (empty($name)) {
+                continue;
+            }
+
+            // Build reference_image array as JSON
             $referenceImages = $image ? [$image] : [];
 
             $map = [
                 'en_title' => $name,
                 'id_title' => $name,
-                'en_description' => $description,
-                'id_description' => $description,
-                'real_price' => $price,
+                'en_description' => $description ?: '',
+                'id_description' => $description ?: '',
+                'real_price' => $price ?: '0',
+                'discount_price' => null,
                 'spesific_gender' => 'both',
-                'highlight_image' => $image ?: '',
-                'reference_image' => DB::raw("ARRAY[" . ($image ? "'" . str_replace("'", "''", $image) . "'" : "") . "]::text[]"),
+                'highlight_image' => $image ?: 'images/default-equipment.png',
+                'reference_image' => json_encode($referenceImages), // Use json_encode for jsonb
                 'status' => 'draft',
+                'created_at' => now(),
+                'updated_at' => now(),
             ];
 
             // Generate slug
@@ -53,24 +61,53 @@ class MedicalEquipmentListSeeder extends Seeder
 
             $rows[] = [
                 'slug' => $slug,
+                'id' => $map['id'] ?? null,
                 'data' => $map
             ];
         }
 
         fclose($h);
 
-        if (empty($rows)) return;
+        if (empty($rows)) {
+            $this->command->warn('No medical equipment data to seed.');
+            return;
+        }
 
         try {
             foreach ($rows as $r) {
-                DB::table('medical_equipment')->updateOrInsert(
-                    ['slug' => $r['slug']], 
-                    $r['data']
-                );
+                // Check if record with this ID or slug already exists
+                if (!empty($r['id'])) {
+                    $existing = DB::table('medical_equipment')->where('id', $r['id'])->first();
+                    
+                    if ($existing) {
+                        // Update existing record
+                        $updateData = $r['data'];
+                        unset($updateData['id']); // Don't update primary key
+                        
+                        DB::table('medical_equipment')
+                            ->where('id', $r['id'])
+                            ->update($updateData);
+                        
+                        $this->command->info("Updated: {$r['slug']}");
+                    } else {
+                        // Insert new record
+                        DB::table('medical_equipment')->insert($r['data']);
+                        $this->command->info("Inserted: {$r['slug']}");
+                    }
+                } else {
+                    // No ID provided, use updateOrInsert with slug
+                    DB::table('medical_equipment')->updateOrInsert(
+                        ['slug' => $r['slug']], 
+                        $r['data']
+                    );
+                    $this->command->info("Upserted: {$r['slug']}");
+                }
             }
+            
             $this->command->info('MedicalEquipmentListSeeder finished successfully.');
         } catch (\Throwable $e) {
             $this->command->error('MedicalEquipmentListSeeder failed: '.$e->getMessage());
+            throw $e;
         }
     }
 }
