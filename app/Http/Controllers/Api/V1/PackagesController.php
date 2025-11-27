@@ -10,7 +10,14 @@ class PackagesController extends Controller
 {
     public function index()
     {
-        $packages = Packages::orderBy('created_at', 'desc')->paginate(15);
+        // allow clients to set `per_page` via query string, with sane defaults and limits
+        $perPage = (int) request()->query('per_page', 15);
+        if ($perPage < 1) $perPage = 15;
+        $perPage = min($perPage, 100);
+
+        $packages = Packages::orderBy('created_at', 'desc')->paginate($perPage);
+
+        // return a resource collection that preserves pagination meta/links
         return LatestPackageResource::collection($packages);
     }
 
