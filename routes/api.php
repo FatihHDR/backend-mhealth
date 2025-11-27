@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\ArticleController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ChatbotController;
@@ -12,7 +13,15 @@ use App\Http\Controllers\Api\V1\PackageController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\RecomendationPackageController;
 use App\Http\Controllers\Api\V1\UserController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\AboutUsController;
+use App\Http\Controllers\Api\V1\LatestPackagesController;
+use App\Http\Controllers\Api\V1\MedicalController;
+use App\Http\Controllers\Api\V1\HotelsController;
+use App\Http\Controllers\Api\V1\MedicalEquipmentController;
+use App\Http\Controllers\Api\V1\VendorsController;
+use App\Http\Controllers\Api\V1\PackagesController;
+use App\Http\Controllers\Api\V1\WellnessController;
+use App\Http\Controllers\Api\V1\WellnessPackagesController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,24 +32,32 @@ use Illuminate\Support\Facades\Route;
 Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], function () {
     // Public auth
     Route::post('register', [AuthController::class, 'register']);
-    // Login needs session cookies for Sanctum SPA flow; add `web` middleware so session is started.
     Route::post('login', [AuthController::class, 'login'])->middleware('web')->name('login');
-    // Google sign-in (stateless)
     Route::post('auth/google', [AuthController::class, 'googleSignIn']);
-    // Password reset submission endpoint (public) used by frontend reset form
     Route::post('password/reset', [AuthController::class, 'resetPassword']);
 
     // Public resources
-    Route::apiResource('recomendation-packages', RecomendationPackageController::class);
-    Route::apiResource('articles', ArticleController::class);
-    Route::apiResource('events', EventController::class);
+    Route::apiResource('recomendation-packages', RecomendationPackageController::class); -
     Route::apiResource('hospital-relations', HospitalRelationController::class);
     Route::apiResource('medical-techs', MedicalTechController::class);
-    Route::apiResource('packages', PackageController::class);
     Route::apiResource('payments', PaymentController::class);
     Route::apiResource('chatbots', ChatbotController::class);
     Route::apiResource('error-logs', ErrorLogController::class);
+
+    // New
     Route::post('gemini/generate', GeminiController::class);
+    Route::apiResource('about-us', AboutUsController::class);
+    Route::apiResource('latest-packages', LatestPackagesController::class);
+    Route::apiResource('medical', MedicalController::class);
+    Route::apiResource('hotels', HotelsController::class);
+    Route::apiResource('medical-equipment', MedicalEquipmentController::class);
+    Route::apiResource('vendors', VendorsController::class);
+    Route::apiResource('packages', PackagesController::class);
+    Route::apiResource('wellness', WellnessController::class);
+    Route::apiResource('wellness-packages', WellnessPackagesController::class);
+    Route::apiResource('articles', ArticleController::class);
+    Route::apiResource('events', EventController::class);
+
 
     // Temporary debug route: log headers and cookies for troubleshooting auth/cors issues.
     // This route is intentionally public and should be removed after debugging.
@@ -66,7 +83,6 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
     });
 
     Route::middleware('auth:sanctum')->group(function () {
-        // Authenticated 'me' endpoint — returns current user and useful debug info.
         Route::get('me', function (\Illuminate\Http\Request $request) {
             \Illuminate\Support\Facades\Log::debug('API /me called', [
                 'headers' => $request->headers->all(),
@@ -91,7 +107,6 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
 });
 
 // Local-only helper to inspect cookies vs server session files.
-// This route uses the `web` middleware so cookies are decrypted and session is available.
 Route::middleware('web')->get('/debug/session-inspect', function (\Illuminate\Http\Request $request) {
     if (app()->environment() !== 'local') {
         return response()->json(['message' => 'Not available in this environment'], 404);
