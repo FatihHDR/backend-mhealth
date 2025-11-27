@@ -16,12 +16,12 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             // existing seeders
-            UserSeeder::class,
-            HospitalRelationSeeder::class,
-            MedicalPackageSeeder::class,
-            LatestPackageSeeder::class,
-            HealingMeditationSeeder::class,
-            HealthStepProgramSeeder::class,
+            //UserSeeder::class,
+            // HospitalRelationSeeder::class,
+            // MedicalPackageSeeder::class,
+            // LatestPackageSeeder::class,
+            // HealingMeditationSeeder::class,
+            // HealthStepProgramSeeder::class,
 
             // CSV-based importers (one seeder per CSV in `csv-files/`)
             AboutUsSeeder::class,

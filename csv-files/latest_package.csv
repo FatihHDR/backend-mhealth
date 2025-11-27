@@ -1,5 +1,33 @@
 id,vendor_name,package_name,tagline,price,duration,hotel_name,specific_gender,medical_contents,entertainment_contents
-1,RS Ngoerah Sun Bali,Prime Health Journey (Male),"Premium Wellness & Ocean Serenity Journey",33000000,"3 Days / 2 Nights",The Legian Seminyak,Male,"Doctor Consultation Full Blood & Lab Screening Cardiac & Body Composition Sensory & Vital Organ Screening Dental Screening Imaging & Radiology","Gentle Yoga by The Legian Short trip to Pura Petitenget Temple Sunset Beachfront Lounging Scenic Walk to Petitenget Beach"
-2,RS Ngoerah Sun Bali,Prime Health Journey (Female),"Jimbaran Soul Rejuvenation & Medical Reset Program",35000000,"3 Days / 2 Nights","Jimbaran Puri / Belmond",Female,"LBC Pap Smear Mammogram (Includes General Screening & Consultation)","In-house Balinese Massage, Ayuverdic or Herbal Treatments Visit Uluwatu Temple + Kecak Dance Morning visit to Garuda Wisnu Kencana (GWK Park) Private Sunbed at Jimbaran Beach, Gentle Beach Walks"
-3,RS Bethesda Yogyakarta,Full Medical Mix,"Medical Check-Up by Morning — Royal Javanese Healing by Afternoon.",18000000,"3 Days 2 Nights",Garrya Bianti Yogyakarta,Both,"Harmony + Prima + Healthy Thyroid + Happy Kidney + Vitamin D + Tumor Marker Total Cholesterol, LDL, HDL, Triglycerides Blood Sugar (fasting) + HbA1c TSH / FT4 / FT3 Creatinine, Urea, BUN, Serum 25(OH)D Cancer early detection based on gender/age","Yoga / Meditation Pavilion Sessions Javanese Herbal Spa Treatment (Lulur or Wedang) Cultural Light Exploration (Prambanan Temple) Ramayana Ballet Show at night Ratu Boko Sunrise"
-4,RS Husada Utama,Bayi Tabung Premium,Pemeriksaan Fertilitas,,"3 Days 2 Night",JW Marriott,Both,"Ovum Pick Up Intracytoplasmic Sperm Injection Embrio Culture Embrio Transfer Freezing Embrio Kamar VIP 2 Hari","Ekowisata Mangrove Wonorejo Kawasan Kota Tua"
+1,RS Ngoerah Sun Bali,Prime Health Journey (Male),"Premium Wellness & Ocean Serenity Journey",33000000,"3 Days / 2 Nights",The Legian Seminyak,Male,"Doctor Consultation
+Full Blood & Lab Screening
+Cardiac & Body Composition
+Sensory & Vital Organ Screening
+Dental Screening
+Imaging & Radiology","Gentle Yoga by The Legian
+Short trip to Pura Petitenget Temple
+Sunset Beachfront Lounging
+Scenic Walk to Petitenget Beach"
+2,RS Ngoerah Sun Bali,Prime Health Journey (Female),"Jimbaran Soul Rejuvenation & Medical Reset Program",35000000,"3 Days / 2 Nights","Jimbaran Puri / Belmond",Female,"LBC Pap Smear
+Mammogram
+(Includes General Screening & Consultation)","In-house Balinese Massage, Ayuverdic or Herbal Treatments
+Visit Uluwatu Temple + Kecak Dance
+Morning visit to Garuda Wisnu Kencana (GWK Park)
+Private Sunbed at Jimbaran Beach, Gentle Beach Walks"
+3,RS Bethesda Yogyakarta,Full Medical Mix,"Medical Check-Up by Morning — Royal Javanese Healing by Afternoon.",18000000,"3 Days 2 Nights",Garrya Bianti Yogyakarta,Both,"Harmony + Prima + Healthy Thyroid + Happy Kidney + Vitamin D + Tumor Marker
+Total Cholesterol, LDL, HDL, Triglycerides
+Blood Sugar (fasting) + HbA1c
+TSH / FT4 / FT3
+Creatinine, Urea, BUN, Serum 25(OH)D
+Cancer early detection based on gender/age","Yoga / Meditation Pavilion Sessions
+Javanese Herbal Spa Treatment (Lulur or Wedang)
+Cultural Light Exploration (Prambanan Temple)
+Ramayana Ballet Show at night
+Ratu Boko Sunrise"
+4,RS Husada Utama,Bayi Tabung Premium,Pemeriksaan Fertilitas,,"3 Days 2 Night",JW Marriott,Both,"Ovum Pick Up
+Intracytoplasmic Sperm Injection
+Embrio Culture
+Embrio Transfer
+Freezing Embrio
+Kamar VIP 2 Hari","Ekowisata Mangrove Wonorejo
+Kawasan Kota Tua"

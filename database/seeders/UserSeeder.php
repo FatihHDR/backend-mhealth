@@ -110,6 +110,12 @@ class UserSeeder extends Seeder
             ],
         ];
 
-        DB::table('users')->insert($users);
+        // Upsert by email so running seed overwrites existing records instead of duplicating
+        try {
+            DB::table('users')->upsert($users, ['email']);
+        } catch (\Throwable $e) {
+            // Fall back to insert if upsert not supported or fails
+            DB::table('users')->insert($users);
+        }
     }
 }

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class HotelListSeeder extends Seeder
 {
@@ -18,18 +19,47 @@ class HotelListSeeder extends Seeder
         if (($h = fopen($file, 'r')) === false) return;
         $headers = fgetcsv($h) ?: [];
 
+        $rows = [];
         while (($row = fgetcsv($h)) !== false) {
-            $data = [];
-            foreach ($headers as $i => $col) {
-                $data[$col] = $row[$i] ?? null;
+            // CSV headers: id,name,description,location_map,logo,highlight_image
+            $id = $row[0] ?? null;
+            $name = $row[1] ?? null;
+            $description = $row[2] ?? null;
+            $location_map = $row[3] ?? null;
+            $logo = $row[4] ?? null;
+            $highlight_image = $row[5] ?? null;
+
+            $map = [
+                'slug' => Str::slug($name ?? Str::uuid()),
+                'name' => $name,
+                'en_description' => $description,
+                'id_description' => $description,
+                'location_map' => $location_map,
+                'logo' => $logo,
+                'highlight_image' => $highlight_image,
+            ];
+
+            // only include `id` when it's a valid UUID to avoid Postgres uuid cast errors
+            if (!empty($id) && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id)) {
+                $map['id'] = (string) $id;
             }
-            try {
-                DB::table('hotel')->insert($data);
-            } catch (\Throwable $e) {
-                $this->command->error('HotelListSeeder skip row: '.$e->getMessage());
-            }
+
+            $rows[] = $map;
         }
 
         fclose($h);
+
+        if (empty($rows)) return;
+
+        try {
+            // use updateOrInsert per-row to avoid requiring a DB-level unique index on `slug`
+            foreach ($rows as $r) {
+                $slug = $r['slug'] ?? null;
+                if ($slug === null) continue;
+                DB::table('hotel')->updateOrInsert(['slug' => $slug], $r);
+            }
+        } catch (\Throwable $e) {
+            $this->command->error('HotelListSeeder failed: '.$e->getMessage());
+        }
     }
 }

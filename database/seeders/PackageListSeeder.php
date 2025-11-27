@@ -18,18 +18,23 @@ class PackageListSeeder extends Seeder
         if (($h = fopen($file, 'r')) === false) return;
         $headers = fgetcsv($h) ?: [];
 
+        $rows = [];
         while (($row = fgetcsv($h)) !== false) {
             $data = [];
             foreach ($headers as $i => $col) {
                 $data[$col] = $row[$i] ?? null;
             }
-            try {
-                DB::table('packages')->insert($data);
-            } catch (\Throwable $e) {
-                $this->command->error('PackageListSeeder skip row: '.$e->getMessage());
-            }
+            $rows[] = $data;
         }
 
         fclose($h);
+
+        if (empty($rows)) return;
+
+        try {
+            DB::table('packages')->upsert($rows, ['slug']);
+        } catch (\Throwable $e) {
+            $this->command->error('PackageListSeeder failed: '.$e->getMessage());
+        }
     }
 }
