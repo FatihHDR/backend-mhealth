@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Package as PackageModel;
+use App\Models\Packages;
 use App\Services\GeminiClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -97,7 +97,7 @@ class GeminiController extends Controller
 
         // Load available packages (safe fallback to empty if DB not available)
         try {
-            $allPackages = PackageModel::select('id', 'name', 'description', 'price', 'image')->get();
+            $allPackages = Packages::select('id', 'name', 'description', 'price', 'image')->get();
         } catch (\Throwable $e) {
             return [];
         }

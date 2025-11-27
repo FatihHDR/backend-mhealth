@@ -9,7 +9,7 @@ class LatestPackagesController extends Controller
 {
     public function index()
     {
-        $rows = $this->index();
+        $rows = app(PackagesController::class)->index();
         return LatestPackageResource::collection($rows);
     }
 }

@@ -32,6 +32,6 @@ class Hotel extends Model
 
     public function packages()
     {
-        return $this->hasMany(Package::class, 'hotel_id');
+        return $this->hasMany(Packages::class, 'hotel_id');
     }
 }

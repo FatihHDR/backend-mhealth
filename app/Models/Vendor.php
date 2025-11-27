@@ -35,6 +35,6 @@ class Vendor extends Model
 
     public function packages()
     {
-        return $this->hasMany(Package::class, 'vendor_id');
+        return $this->hasMany(Packages::class, 'vendor_id');
     }
 }

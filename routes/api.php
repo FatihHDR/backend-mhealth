@@ -37,12 +37,10 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
     Route::post('password/reset', [AuthController::class, 'resetPassword']);
 
     // Public resources
-    Route::apiResource('recomendation-packages', RecomendationPackageController::class); -
+    Route::apiResource('recomendation-packages', RecomendationPackageController::class);
     Route::apiResource('hospital-relations', HospitalRelationController::class);
     Route::apiResource('medical-techs', MedicalTechController::class);
-    Route::apiResource('payments', PaymentController::class);
     Route::apiResource('chatbots', ChatbotController::class);
-    Route::apiResource('error-logs', ErrorLogController::class);
 
     // New
     Route::post('gemini/generate', GeminiController::class);
@@ -57,6 +55,8 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
     Route::apiResource('wellness-packages', WellnessPackagesController::class);
     Route::apiResource('articles', ArticleController::class);
     Route::apiResource('events', EventController::class);
+    Route::apiResource('payments', PaymentController::class);
+    Route::apiResource('error-logs', ErrorLogController::class);
 
 
     // Temporary debug route: log headers and cookies for troubleshooting auth/cors issues.
