@@ -33,9 +33,10 @@ class VerifySupabaseJwt
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $secret = env('SUPABASE_JWT_SECRET');
+        // Prefer configuration value (works with config:cache). Fallback to env().
+        $secret = config('supabase.jwt_secret') ?: env('SUPABASE_JWT_SECRET');
         if (! $secret) {
-            return response()->json(['message' => 'Server misconfigured: missing SUPABASE_JWT_SECRET'], 500);
+            return response()->json(['message' => 'Server misconfigured: missing SUPABASE_JWT_SECRET or config.supabase.jwt_secret'], 500);
         }
 
         try {

@@ -61,29 +61,6 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
 
     Route::post('payments/notification', [PaymentController::class, 'notification']);
 
-    // Temporary debug route: log headers and cookies for troubleshooting auth/cors issues.
-    // This route is intentionally public and should be removed after debugging.
-    // Route::match(['GET', 'POST'], 'debug/headers', function (\Illuminate\Http\Request $request) {
-    //     \Illuminate\Support\Facades\Log::debug('Debug headers endpoint called', [
-    //         'headers' => $request->headers->all(),
-    //         'cookies' => $request->cookies->all(),
-    //         'input' => $request->all(),
-    //         'session_id' => session()->getId(),
-    //         'session' => session()->all(),
-    //         'user' => optional($request->user())->id ?? null,
-    //         'ip' => $request->ip(),
-    //     ]);
-
-    //     return response()->json([
-    //         'headers' => $request->headers->all(),
-    //         'cookies' => $request->cookies->all(),
-    //         'input' => $request->all(),
-    //         'session_id' => session()->getId(),
-    //         'session' => session()->all(),
-    //         'user' => optional($request->user())->id ?? null,
-    //     ]);
-    // });
-
     Route::middleware(VerifySupabaseJwt::class)->group(function () {
         Route::get('me', function (\Illuminate\Http\Request $request) {
             \Illuminate\Support\Facades\Log::debug('API /me called', [
