@@ -7,6 +7,11 @@ use App\Models\Packages;
 use App\Services\GeminiClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Models\ChatActivity;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Bus;
+use App\Jobs\SaveChatActivity;
 
 class GeminiController extends Controller
 {
@@ -26,7 +31,6 @@ class GeminiController extends Controller
             'options' => ['sometimes', 'array'],
         ]);
 
-        // Persona/system instruction for Mei
         $systemInstruction = 'You are Mei, a gentle, empathetic, and informative virtual health assistant. '.
             'Speak naturally, politely, and with a warm feminine tone as a caring female health assistant. '.
             "When the user's message suggests an emergency, immediately advise them to call {$this->emergencyNumber} ".
@@ -44,7 +48,6 @@ class GeminiController extends Controller
         $urgent = $this->detectEmergency($validated['prompt'].' '.$replyText);
 
         if ($urgent) {
-            // If urgent, ensure advice to call emergency number and include consultation keyword
             $suffix = "\n\nJika ini darurat, segera hubungi {$this->emergencyNumber}.\n\nconsultation";
             if (stripos($replyText, (string) $this->emergencyNumber) === false) {
                 $replyText = trim($replyText).$suffix;
@@ -53,7 +56,48 @@ class GeminiController extends Controller
             }
         }
 
-        // Detect package recommendations based on the prompt and reply text
+        try {
+            $userId = $request->attributes->get('supabase_user_id') ?? null;
+
+            $tsUser = (int) (microtime(true) * 1000);
+            $tsBot = $tsUser + 10;
+
+            // If anonymous, generate a UUID public id; if logged in, attach to user_id
+            $publicId = null;
+            if (empty($userId)) {
+                $publicId = (string) Str::uuid();
+            }
+
+            // Use the publicId as session id for anonymous sessions so clients can reference it
+            $sessionId = $publicId ?? '_'.substr(bin2hex(random_bytes(8)), 0, 20);
+
+            $session = [
+                'id' => $sessionId,
+                'title' => substr($validated['prompt'], 0, 200),
+                'messages' => [
+                    [
+                        'id' => (string) $tsUser,
+                        'message' => $validated['prompt'],
+                        'sender' => 'user',
+                        'timestamp' => now()->toIso8601String(),
+                        'replyTo' => null,
+                    ],
+                    [
+                        'id' => (string) $tsBot,
+                        'message' => $replyText,
+                        'sender' => 'bot',
+                        'timestamp' => now()->toIso8601String(),
+                    ],
+                ],
+                'updatedAt' => now()->toIso8601String(),
+            ];
+
+            // Dispatch saving after response to avoid blocking the API response
+            Bus::dispatchAfterResponse(new SaveChatActivity($session, $userId, $publicId));
+        } catch (\Throwable $e) {
+            Log::error('Failed to persist chat activity', ['error' => $e->getMessage()]);
+        }
+
         $packageSuggestions = $this->detectPackageRecommendations($validated['prompt'].' '.$replyText);
 
         $actions = [];

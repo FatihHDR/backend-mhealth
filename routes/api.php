@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\PackagesController;
 use App\Http\Controllers\Api\V1\WellnessController;
 use App\Http\Controllers\Api\V1\WellnessPackagesController;
 use App\Http\Middleware\VerifySupabaseJwt;
+use App\Http\Controllers\Api\V1\ChatHistoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,6 +48,8 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
     Route::apiResource('events', EventController::class);
     Route::apiResource('payments', PaymentController::class);
     Route::apiResource('error-logs', ErrorLogController::class);
+    // Chat history import
+    Route::post('chat-activities', [ChatHistoryController::class, 'store']);
 
     Route::middleware(VerifySupabaseJwt::class)->group(function () {
     Route::get('profile', function (Illuminate\Http\Request $request) {
