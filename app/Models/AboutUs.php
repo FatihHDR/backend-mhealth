@@ -10,7 +10,6 @@ class AboutUs extends Model
     use HasUuids;
 
     protected $table = 'about_us';
-    // about_us uses bigIncrements id, so keep integer keys
     public $timestamps = true;
 
     protected $fillable = [
