@@ -12,4 +12,10 @@ class WellnessController extends Controller
         $rows = $this->index();
         return WellnessResource::collection($rows);
     }
+
+    public function show($id)
+    {
+        $row = $this->show($id);
+        return new WellnessResource($row);
+    }
 }
