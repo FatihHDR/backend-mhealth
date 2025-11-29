@@ -45,9 +45,20 @@ class VerifySupabaseJwt
         }
 
         $request->attributes->set('supabase_user', $payload);
+
         if (isset($payload->sub)) {
             $request->attributes->set('user_id', $payload->sub);
+            $request->attributes->set('supabase_user_id', $payload->sub);
         }
+
+        $role = null;
+        if (isset($payload->role)) {
+            $role = $payload->role;
+        } elseif (isset($payload->user_role)) {
+            $role = $payload->user_role;
+        }
+
+        $request->attributes->set('supabase_user_role', $role ?? 'user');
 
         return $next($request);
     }

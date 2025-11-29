@@ -84,28 +84,31 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
     //     ]);
     // });
 
-    // Route::middleware('auth:sanctum')->group(function () {
-    //     Route::get('me', function (\Illuminate\Http\Request $request) {
-    //         \Illuminate\Support\Facades\Log::debug('API /me called', [
-    //             'headers' => $request->headers->all(),
-    //             'cookies' => $request->cookies->all(),
-    //             'session_id' => session()->getId(),
-    //             'session' => session()->all(),
-    //             'user' => optional($request->user())->id ?? null,
-    //         ]);
+    Route::middleware(VerifySupabaseJwt::class)->group(function () {
+        Route::get('me', function (\Illuminate\Http\Request $request) {
+            \Illuminate\Support\Facades\Log::debug('API /me called', [
+                'headers' => $request->headers->all(),
+                'cookies' => $request->cookies->all(),
+                'session_id' => session()->getId(),
+                'session' => session()->all(),
+                'supabase_user' => $request->attributes->get('supabase_user'),
+                'supabase_user_id' => $request->attributes->get('supabase_user_id'),
+                'supabase_user_role' => $request->attributes->get('supabase_user_role'),
+            ]);
 
-    //         if (! $request->user()) {
-    //             \Illuminate\Support\Facades\Log::debug('API /me unauthenticated');
-    //         }
+            return response()->json([
+                'user' => [
+                    'supabase_id' => $request->attributes->get('supabase_user_id'),
+                    'payload' => $request->attributes->get('supabase_user'),
+                ],
+            ]);
+        });
 
-    //         return response()->json(['user' => $request->user()]);
-    //     });
-
-    //     Route::post('logout', [AuthController::class, 'logout']);
-    //     Route::apiResource('users', UserController::class);
-    //     Route::post('password/send-link', [AuthController::class, 'sendResetLinkAuthenticated']);
-    //     Route::post('password/change', [AuthController::class, 'changePassword']);
-    // });
+        Route::post('logout', [AuthController::class, 'logout']);
+        Route::apiResource('users', UserController::class);
+        Route::post('password/send-link', [AuthController::class, 'sendResetLinkAuthenticated']);
+        Route::post('password/change', [AuthController::class, 'changePassword']);
+    });
 });
 
 // Route::middleware('web')->get('/debug/session-inspect', function (\Illuminate\Http\Request $request) {
