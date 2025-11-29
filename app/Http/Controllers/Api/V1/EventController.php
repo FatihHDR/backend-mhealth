@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\Paginates;
 use App\Models\Event;
 
 class EventController extends Controller
 {
+    use Paginates;
     public function index()
     {
-        $events = Event::orderBy('start_date', 'desc')->paginate(15);
+        $query = Event::orderBy('start_date', 'desc');
+        $events = $this->paginateQuery($query);
 
         return response()->json($events);
     }
@@ -23,18 +26,20 @@ class EventController extends Controller
 
     public function upcoming()
     {
-        $events = Event::where('start_date', '>', now())
-            ->orderBy('start_date', 'asc')
-            ->paginate(15);
+        $query = Event::where('start_date', '>', now())
+            ->orderBy('start_date', 'asc');
+
+        $events = $this->paginateQuery($query);
 
         return response()->json($events);
     }
 
     public function past()
     {
-        $events = Event::where('end_date', '<', now())
-            ->orderBy('start_date', 'desc')
-            ->paginate(15);
+        $query = Event::where('end_date', '<', now())
+            ->orderBy('start_date', 'desc');
+
+        $events = $this->paginateQuery($query);
 
         return response()->json($events);
     }

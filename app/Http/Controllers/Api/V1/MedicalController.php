@@ -3,18 +3,17 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\Paginates;
 use App\Http\Resources\MedicalResource;
 use App\Models\Medical;
 
 class MedicalController extends Controller
 {
+    use Paginates;
     public function index()
     {
-        $perPage = (int) request()->query('per_page', 15);
-        if ($perPage < 1) $perPage = 15;
-        $perPage = min($perPage, 100);
-
-        $rows = Medical::orderBy('created_at', 'desc')->paginate($perPage);
+        $query = Medical::orderBy('created_at', 'desc');
+        $rows = $this->paginateQuery($query);
         return MedicalResource::collection($rows);
     }
 

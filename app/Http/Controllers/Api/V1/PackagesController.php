@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\Paginates;
 use App\Http\Resources\LatestPackageResource;
 use App\Models\Packages;
 
 class PackagesController extends Controller
 {
+    use Paginates;
     public function index()
     {
         // allow clients to set `per_page` via query string, with sane defaults and limits
@@ -15,9 +17,9 @@ class PackagesController extends Controller
         if ($perPage < 1) $perPage = 15;
         $perPage = min($perPage, 100);
 
-        $packages = Packages::orderBy('created_at', 'desc')->paginate($perPage);
+        $query = Packages::orderBy('created_at', 'desc');
+        $packages = $this->paginateQuery($query);
 
-        // return a resource collection that preserves pagination meta/links
         return LatestPackageResource::collection($packages);
     }
 

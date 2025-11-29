@@ -3,25 +3,20 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\Paginates;
 use App\Http\Resources\ArticleResource;
 use App\Models\Article;
 
 class ArticleController extends Controller
 {
+    use Paginates;
     public function index()
     {
-        // allow clients to control per_page with safe defaults/limits
-        $perPage = (int) request()->query('per_page', 15);
-        if ($perPage < 1) $perPage = 15;
-        $perPage = min($perPage, 200);
+        $query = Article::with('author')->orderBy('created_at', 'desc');
 
-        $articles = Article::with('author')
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage)
-            ->appends(request()->query());
+        $paginator = $this->paginateQuery($query);
 
-        // return a Resource collection so the `data` entries are formatted consistently
-        return ArticleResource::collection($articles);
+        return ArticleResource::collection($paginator);
     }
 
     public function show($id)
@@ -32,33 +27,24 @@ class ArticleController extends Controller
 
     public function byAuthor($userId)
     {
-        $perPage = (int) request()->query('per_page', 15);
-        if ($perPage < 1) $perPage = 15;
-        $perPage = min($perPage, 200);
-
-        // note: Article uses `author` as the foreign key column
-        $articles = Article::where('author', $userId)
+        $query = Article::where('author', $userId)
             ->with('author')
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage)
-            ->appends(request()->query());
+            ->orderBy('created_at', 'desc');
 
-        return ArticleResource::collection($articles);
+        $paginator = $this->paginateQuery($query);
+
+        return ArticleResource::collection($paginator);
     }
 
     public function published()
     {
-        $perPage = (int) request()->query('per_page', 15);
-        if ($perPage < 1) $perPage = 15;
-        $perPage = min($perPage, 200);
-
-        $articles = Article::whereNotNull('published_at')
+        $query = Article::whereNotNull('published_at')
             ->where('published_at', '<=', now())
             ->with('author')
-            ->orderBy('published_at', 'desc')
-            ->paginate($perPage)
-            ->appends(request()->query());
+            ->orderBy('published_at', 'desc');
 
-        return ArticleResource::collection($articles);
+        $paginator = $this->paginateQuery($query);
+
+        return ArticleResource::collection($paginator);
     }
 }
