@@ -60,9 +60,9 @@ class UploadController extends Controller
         // Generate URL (Storage::url works when disk is configured to public or has url)
         $url = null;
         try {
-            /** @var \Illuminate\Filesystem\FilesystemAdapter $diskStorage */
-            $diskStorage = Storage::disk($disk);
-            $url = $diskStorage->url($path);
+            /** @var \Illuminate\Filesystem\FilesystemAdapter $diskDriver */
+            $diskDriver = Storage::disk($disk);
+            $url = $diskDriver->url($path);
         } catch (\Exception $e) {
             // Fallback: return the path; caller can construct URL client-side
             $url = $path;

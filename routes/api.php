@@ -36,7 +36,10 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
 
     // New
     Route::post('gemini/generate', GeminiController::class);
-    Route::post('upload', [UploadController::class, 'store']);
+    // Centralized upload endpoint: accepts a module/resource parameter
+    // Example: POST /api/v1/medical/upload or /api/v1/vendors/upload
+    Route::post('{module}/upload', [UploadController::class, 'upload'])
+        ->where('module', 'medical|vendors|packages|wellness|hotels|medical-equipment|medical_equipment|articles|events|accounts|users|latest-packages|about-us');
     Route::apiResource('about-us', AboutUsController::class);
     Route::apiResource('latest-packages', LatestPackagesController::class);
     Route::apiResource('medical', MedicalController::class);
