@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
             WellnessListSeeder::class,
             WellnessPackagePricingSeeder::class,
             ArticleSeeder::class,
+            EventSeeder::class,
         ]);
 
         $this->command->info('All seeders completed successfully! 🎉');

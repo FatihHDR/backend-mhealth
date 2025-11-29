@@ -3,15 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\ArticleController;
 use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\ChatbotController;
 use App\Http\Controllers\Api\V1\ErrorLogController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\GeminiController;
-use App\Http\Controllers\Api\V1\HospitalRelationController;
-use App\Http\Controllers\Api\V1\MedicalTechController;
-use App\Http\Controllers\Api\V1\PackageController;
 use App\Http\Controllers\Api\V1\PaymentController;
-use App\Http\Controllers\Api\V1\RecomendationPackageController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\AboutUsController;
 use App\Http\Controllers\Api\V1\LatestPackagesController;
@@ -35,12 +30,6 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
     Route::post('login', [AuthController::class, 'login'])->middleware('web')->name('login');
     Route::post('auth/google', [AuthController::class, 'googleSignIn']);
     Route::post('password/reset', [AuthController::class, 'resetPassword']);
-
-    // Public resources
-    Route::apiResource('recomendation-packages', RecomendationPackageController::class);
-    Route::apiResource('hospital-relations', HospitalRelationController::class);
-    Route::apiResource('medical-techs', MedicalTechController::class);
-    Route::apiResource('chatbots', ChatbotController::class);
 
     // New
     Route::post('gemini/generate', GeminiController::class);

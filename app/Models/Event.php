@@ -4,20 +4,29 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Event extends Model
 {
-    use HasUuids;
+    use HasFactory, HasUuids;
 
     protected $table = 'events';
 
     protected $fillable = [
-        'title',
-        'description',
-        'image',
-        'location',
+        'slug',
+        'en_title',
+        'id_title',
+        'en_description',
+        'id_description',
+        'highlight_image',
+        'reference_image',
+        'organized_image',
+        'organized_by',
         'start_date',
         'end_date',
+        'location_name',
+        'location_map',
+        'status',
     ];
 
     protected $casts = [
