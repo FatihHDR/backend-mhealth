@@ -27,7 +27,12 @@ use App\Http\Controllers\Api\V1\ChatHistoryController;
 |--------------------------------------------------------------------------
 */
 
-Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], function () {
+Route::group([
+    'prefix' => 'v1',
+    'namespace' => 'App\Http\Controllers\Api\V1',
+    // Force JSON responses for all API routes to avoid HTML redirects on errors
+    'middleware' => [\App\Http\Middleware\ForceJsonForApi::class],
+], function () {
     // Public auth
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login'])->middleware('web')->name('login');

@@ -29,6 +29,10 @@ class GeminiController extends Controller
         $validated = $request->validate([
             'prompt' => ['required', 'string'],
             'options' => ['sometimes', 'array'],
+            // Optional chat history: array of { sender: 'user'|'bot'|'ai', message: string }
+            'messages' => ['sometimes', 'array'],
+            'messages.*.sender' => ['required_with:messages', 'string'],
+            'messages.*.message' => ['required_with:messages', 'string'],
         ]);
 
         $systemInstruction = 'You are Mei, a gentle, empathetic, and informative virtual health assistant. '.
@@ -36,7 +40,30 @@ class GeminiController extends Controller
             "When the user's message suggests an emergency, immediately advise them to call {$this->emergencyNumber} ".
             "and include the word 'consultation' at the end of your message to prompt for a professional follow-up.";
 
-        $fullPrompt = $systemInstruction."\n\nUser: ".$validated['prompt'];
+        // Build stacked conversation from optional history messages, then append the new user prompt.
+        $fullPromptParts = [$systemInstruction, ''];
+
+        if (! empty($validated['messages']) && is_array($validated['messages'])) {
+            foreach ($validated['messages'] as $m) {
+                $sender = strtolower($m['sender'] ?? 'user');
+                $text = trim($m['message'] ?? '');
+                if ($text === '') {
+                    continue;
+                }
+
+                if (in_array($sender, ['user', 'u', 'me', 'saya', 'client'], true)) {
+                    $fullPromptParts[] = "User: {$text}";
+                } else {
+                    // treat any other sender as assistant/bot
+                    $fullPromptParts[] = "Assistant: {$text}";
+                }
+            }
+        }
+
+        // Append the latest user prompt as the final user message
+        $fullPromptParts[] = "User: " . $validated['prompt'];
+
+        $fullPrompt = implode("\n", $fullPromptParts);
 
         $response = $client->generateText(
             $fullPrompt,

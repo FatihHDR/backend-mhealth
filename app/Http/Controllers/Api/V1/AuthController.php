@@ -177,8 +177,6 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         try {
-            // Debugging: log parsed input and a masked payload (do NOT log raw password).
-            // Keep minimal info for debugging; mask any password present in the raw JSON.
             $raw = $request->getContent();
             $maskedPayload = null;
             if (! empty($raw)) {
@@ -350,62 +348,61 @@ class AuthController extends Controller
     /**
      * Redirect the user to Google's OAuth page (web flow)
      */
-    public function redirectToProvider()
-    {
-        return Socialite::driver('google')->redirect();
-    }
+    // public function redirectToProvider()
+    // {
+    //     return Socialite::driver('google')->redirect();
+    // }
 
-    /**
-     * Obtain the user information from Google and login/create local user (web callback)
-     * Redirects to FRONTEND_URL with token as query param (optional).
-     */
-    public function handleProviderCallback()
-    {
-        try {
-            $googleUser = Socialite::driver('google')->user();
+    // /**
+    //  * Obtain the user information from Google and login/create local user (web callback)
+    //  * Redirects to FRONTEND_URL with token as query param (optional).
+    //  */
+    // public function handleProviderCallback()
+    // {
+    //     try {
+    //         $googleUser = Socialite::driver('google')->user();
 
-            $email = $googleUser->getEmail();
-            $name = $googleUser->getName() ?? $googleUser->getNickname();
+    //         $email = $googleUser->getEmail();
+    //         $name = $googleUser->getName() ?? $googleUser->getNickname();
 
-            if (! $email) {
-                return redirect(config('app.url'));
-            }
+    //         if (! $email) {
+    //             return redirect(config('app.url'));
+    //         }
 
-            $user = User::updateOrCreate(
-                ['email' => $email],
-                [
-                    'full_name' => $name ?? $email,
-                ]
-            );
+    //         $user = User::updateOrCreate(
+    //             ['email' => $email],
+    //             [
+    //                 'full_name' => $name ?? $email,
+    //             ]
+    //         );
 
-            // Save provider data
-            $user->google_id = $googleUser->getId();
-            if (property_exists($googleUser, 'token')) {
-                $user->google_token = $googleUser->token;
-            }
-            if (property_exists($googleUser, 'refreshToken')) {
-                $user->google_refresh_token = $googleUser->refreshToken;
-            }
-            $user->save();
+    //         // Save provider data
+    //         $user->google_id = $googleUser->getId();
+    //         if (property_exists($googleUser, 'token')) {
+    //             $user->google_token = $googleUser->token;
+    //         }
+    //         if (property_exists($googleUser, 'refreshToken')) {
+    //             $user->google_refresh_token = $googleUser->refreshToken;
+    //         }
+    //         $user->save();
 
-            // Login the user
-            Auth::login($user);
+    //         Auth::login($user);
 
-            // Create Sanctum token to pass to frontend (optional)
-            $newToken = $user->createToken('api-token');
-            $plain = $newToken->plainTextToken;
+    //         // Create Sanctum token to pass to frontend (optional)
+    //         $newToken = $user->createToken('api-token');
+    //         $plain = $newToken->plainTextToken;
 
-            $frontend = env('FRONTEND_URL');
-            if ($frontend) {
-                // Redirect with token in query string (frontend should read and store securely)
-                return Redirect::away(rtrim($frontend, '/').'/?token='.$plain);
-            }
+    //         $frontend = env('FRONTEND_URL');
+    //         if ($frontend) {
+    //             // Redirect with token in query string (frontend should read and store securely)
+    //             return Redirect::away(rtrim($frontend, '/').'/?token='.$plain);
+    //         }
 
-            return redirect('/');
-        } catch (\Throwable $e) {
-            Log::error('Google callback error', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+    //         return redirect('/');
+    //     } catch (\Throwable $e) {
+    //         Log::error('Google callback error', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
 
-            return redirect(config('app.url'));
-        }
-    }
+    //         return redirect(config('app.url'));
+    //     }
+    // }
 }
