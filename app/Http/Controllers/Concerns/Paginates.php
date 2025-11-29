@@ -18,7 +18,12 @@ trait Paginates
         if (is_string($raw) && strtolower($raw) === 'all') return 'all';
         if (is_numeric($raw)) {
             $n = (int)$raw;
-            return $n > 0 ? $n : null;
+            if ($n <= 0) return null;
+
+            // Cap per-page to a reasonable maximum to avoid huge responses.
+            // You can change this value if you need larger pages.
+            $maxPerPage = 100;
+            return $n > $maxPerPage ? $maxPerPage : $n;
         }
         return null;
     }
