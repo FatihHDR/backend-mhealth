@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\VendorsController;
 use App\Http\Controllers\Api\V1\PackagesController;
 use App\Http\Controllers\Api\V1\WellnessController;
 use App\Http\Controllers\Api\V1\WellnessPackagesController;
+use App\Http\Controllers\Api\V1\UploadController;
 use App\Http\Middleware\VerifySupabaseJwt;
 use App\Http\Controllers\Api\V1\ChatHistoryController;
 
@@ -35,6 +36,7 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\Api\V1'], f
 
     // New
     Route::post('gemini/generate', GeminiController::class);
+    Route::post('upload', [UploadController::class, 'store']);
     Route::apiResource('about-us', AboutUsController::class);
     Route::apiResource('latest-packages', LatestPackagesController::class);
     Route::apiResource('medical', MedicalController::class);
