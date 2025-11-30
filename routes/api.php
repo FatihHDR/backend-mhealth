@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\PackagesController;
 use App\Http\Controllers\Api\V1\WellnessController;
 use App\Http\Controllers\Api\V1\WellnessPackagesController;
 use App\Http\Controllers\Api\V1\UploadController;
+use App\Http\Controllers\Api\V1\ChatActivityController;
 use App\Http\Middleware\VerifySupabaseJwt;
 use App\Http\Controllers\Api\V1\ChatHistoryController;
 
@@ -60,6 +61,12 @@ Route::group([
     Route::apiResource('error-logs', ErrorLogController::class);
     // Chat history import
     Route::post('chat-activities', [ChatHistoryController::class, 'store']);
+    // CRUD for stored chat sessions (index, show, update, destroy)
+    Route::get('chat-activities', [ChatActivityController::class, 'index']);
+    Route::get('chat-activities/{chat_activity}', [ChatActivityController::class, 'show']);
+    Route::put('chat-activities/{chat_activity}', [ChatActivityController::class, 'update']);
+    Route::patch('chat-activities/{chat_activity}', [ChatActivityController::class, 'update']);
+    Route::delete('chat-activities/{chat_activity}', [ChatActivityController::class, 'destroy']);
 
     Route::middleware(VerifySupabaseJwt::class)->group(function () {
     Route::get('profile', function (Illuminate\Http\Request $request) {
