@@ -14,6 +14,7 @@ class ChatActivity extends Model
     public $incrementing = false;
 
     protected $fillable = [
+        'id',
         'title',
         'chat_activity_data',
         'public_id',

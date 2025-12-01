@@ -26,9 +26,25 @@ class ChatActivityController extends Controller
         }
 
         $perPage = (int) $request->query('per_page', 20);
-        $data = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $data = $query->orderBy('updated_at', 'desc')->paginate($perPage);
 
         return response()->json($data);
+    }
+
+    /**
+     * Get ALL chat sessions for a specific public_id (no pagination).
+     * Endpoint: GET /chat-activities/all/{public_id}
+     */
+    public function all(string $public_id)
+    {
+        $sessions = ChatActivity::where('public_id', $public_id)
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'data' => $sessions,
+            'total' => $sessions->count(),
+        ]);
     }
 
     /**

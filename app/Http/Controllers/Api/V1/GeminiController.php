@@ -24,17 +24,72 @@ class GeminiController extends Controller
         'stopped breathing', 'not breathing', 'no pulse', 'cardiac arrest',
     ];
 
+    /**
+     * Generate a short, descriptive title for a chat session based on the first message and reply.
+     * This mimics how ChatGPT/Gemini generates conversation titles.
+     */
+    private function generateChatTitle(GeminiClient $client, string $userMessage, string $botReply): string
+    {
+        try {
+            // Prompt khusus untuk generate judul singkat
+            $titlePrompt = <<<PROMPT
+Buatkan judul singkat (maksimal 5-7 kata) untuk percakapan berikut. Judul harus merangkum topik utama percakapan.
+
+Aturan:
+- Gunakan bahasa yang sama dengan pesan user
+- Jangan gunakan tanda kutip
+- Jangan gunakan tanda baca di akhir
+- Langsung tulis judulnya saja, tanpa kata "Judul:" atau penjelasan lain
+
+Percakapan:
+User: {$userMessage}
+Assistant: {$botReply}
+
+Judul singkat:
+PROMPT;
+
+            Log::debug('Generating chat title', ['user_message' => mb_substr($userMessage, 0, 100)]);
+
+            $response = $client->generateText($titlePrompt, [
+                'temperature' => 0.3,
+                'maxOutputTokens' => 50,
+            ]);
+
+            $title = $this->extractTextFromResponse($response);
+            
+            Log::debug('Generated title raw', ['raw_title' => $title]);
+            
+            // Clean up the title
+            $title = trim($title, " \t\n\r\0\x0B\"'");
+            $title = preg_replace('/^(Title:|Judul:|Judul singkat:)\s*/i', '', $title);
+            $title = trim($title, " \t\n\r\0\x0B\"'.:"); // Remove trailing punctuation too
+            
+            // Limit length and fallback if empty
+            if (empty($title) || mb_strlen($title) > 100) {
+                Log::warning('Title generation fallback - empty or too long', ['title_length' => mb_strlen($title)]);
+                return mb_substr($userMessage, 0, 50) . (mb_strlen($userMessage) > 50 ? '...' : '');
+            }
+
+            Log::info('Chat title generated successfully', ['title' => $title]);
+            return $title;
+        } catch (\Throwable $e) {
+            Log::warning('Failed to generate chat title', ['error' => $e->getMessage()]);
+            // Fallback to first 50 chars of user message
+            return mb_substr($userMessage, 0, 50) . (mb_strlen($userMessage) > 50 ? '...' : '');
+        }
+    }
+
     public function __invoke(Request $request, GeminiClient $client): JsonResponse
     {
         $validated = $request->validate([
             'prompt' => ['required', 'string'],
             'options' => ['sometimes', 'array'],
-            // Optional chat history: array of { sender: 'user'|'bot'|'ai', message: string }
             'messages' => ['sometimes', 'array'],
             'messages.*.sender' => ['required_with:messages', 'string'],
             'messages.*.message' => ['required_with:messages', 'string'],
-            // Optional session_id to continue an existing session (prevents new row creation)
             'session_id' => ['sometimes', 'string', 'nullable'],
+            'public_id' => ['sometimes', 'string', 'nullable'],
+            'new_session' => ['sometimes', 'boolean'],
         ]);
 
         $systemInstruction = 'You are Mei, a gentle, empathetic, and informative virtual health assistant. '.
@@ -42,7 +97,20 @@ class GeminiController extends Controller
             "When the user's message suggests an emergency, immediately advise them to call {$this->emergencyNumber} ".
             "and include the word 'consultation' at the end of your message to prompt for a professional follow-up.";
 
-        // Build stacked conversation from optional history messages, then append the new user prompt.
+        $messageCount = 0;
+        if (! empty($validated['messages']) && is_array($validated['messages'])) {
+            $messageCount = count($validated['messages']);
+        }
+
+        $shouldSuggestDoctor = $messageCount >= 6;
+
+        if ($shouldSuggestDoctor) {
+            $systemInstruction .= ' Since you have been chatting for a while about health concerns, '.
+                'gently suggest that the user consider consulting with a professional doctor for a more thorough examination. '.
+                'Remind them that while you can provide general health information, a doctor can give personalized medical advice. '.
+                'Include "consultation" at the end of your response to show the consultation button.';
+        }
+
         $fullPromptParts = [$systemInstruction, ''];
 
         if (! empty($validated['messages']) && is_array($validated['messages'])) {
@@ -56,16 +124,20 @@ class GeminiController extends Controller
                 if (in_array($sender, ['user', 'u', 'me', 'saya', 'client'], true)) {
                     $fullPromptParts[] = "User: {$text}";
                 } else {
-                    // treat any other sender as assistant/bot
                     $fullPromptParts[] = "Assistant: {$text}";
                 }
             }
         }
 
-        // Append the latest user prompt as the final user message
         $fullPromptParts[] = "User: " . $validated['prompt'];
 
         $fullPrompt = implode("\n", $fullPromptParts);
+
+        Log::debug('GeminiController request received', [
+            'ip' => $request->ip(),
+            'user_agent' => $request->header('User-Agent'),
+            'referer' => $request->header('Referer'),
+        ]);
 
         $response = $client->generateText(
             $fullPrompt,
@@ -85,46 +157,50 @@ class GeminiController extends Controller
             }
         }
 
+        $currentMessageCount = $messageCount;
+
         try {
             $userId = $request->attributes->get('supabase_user_id') ?? null;
 
             $tsUser = (int) (microtime(true) * 1000);
             $tsBot = $tsUser + 10;
 
-            // Check if frontend wants to continue an existing session
             $incomingSessionId = $validated['session_id'] ?? null;
+            $incomingPublicId = $validated['public_id'] ?? null;
+            $forceNewSession = $validated['new_session'] ?? false;
             $existingSession = null;
 
-            // DEBUG: Log incoming session_id to verify FE is sending it
             Log::debug('GeminiController session lookup', [
                 'incoming_session_id' => $incomingSessionId,
+                'incoming_public_id' => $incomingPublicId,
+                'force_new_session' => $forceNewSession,
                 'user_id' => $userId,
             ]);
 
-            if (! empty($incomingSessionId)) {
-                // Try to find by public_id first (that's what we return as session_id),
-                // then fallback to primary id
-                $existingSession = ChatActivity::where('public_id', $incomingSessionId)->first();
-                if (! $existingSession) {
-                    $existingSession = ChatActivity::find($incomingSessionId);
-                }
-                Log::debug('GeminiController session found', [
-                    'found' => $existingSession ? true : false,
-                    'existing_id' => $existingSession?->id,
-                    'existing_public_id' => $existingSession?->public_id,
-                ]);
-            }
-                if (! $existingSession) {
-                    $existingSession = ChatActivity::find($incomingSessionId);
-                }
+            if (! $forceNewSession && ! empty($incomingSessionId)) {
+                $existingSession = ChatActivity::find($incomingSessionId);
             }
 
             if ($existingSession) {
-                // Continue existing session: merge new messages into existing data
+                $sessionData = $existingSession->chat_activity_data;
+                $existingMessagesCount = count($sessionData['messages'] ?? []);
+                $messageCount = max($messageCount, $existingMessagesCount);
+            }
+
+            Log::debug('GeminiController session found', [
+                'found' => $existingSession ? true : false,
+                'existing_id' => $existingSession?->id,
+                'existing_public_id' => $existingSession?->public_id,
+            ]);
+
+            $publicId = $incomingPublicId ?? (string) Str::uuid();
+            
+            $sessionId = null;
+
+            if ($existingSession) {
                 $sessionData = $existingSession->chat_activity_data;
                 $existingMessages = $sessionData['messages'] ?? [];
 
-                // Append new user message
                 $existingMessages[] = [
                     'id' => (string) $tsUser,
                     'message' => $validated['prompt'],
@@ -133,7 +209,6 @@ class GeminiController extends Controller
                     'replyTo' => null,
                 ];
 
-                // Append bot reply
                 $existingMessages[] = [
                     'id' => (string) $tsBot,
                     'message' => $replyText,
@@ -141,11 +216,11 @@ class GeminiController extends Controller
                     'timestamp' => now()->toIso8601String(),
                 ];
 
-                // Use public_id as the session identifier (this is what FE receives and sends back)
                 $publicId = $existingSession->public_id;
+                $sessionId = $existingSession->id;
 
                 $session = [
-                    'id' => $publicId,
+                    'id' => $sessionId,
                     'title' => $sessionData['title'] ?? substr($validated['prompt'], 0, 200),
                     'messages' => $existingMessages,
                     'updatedAt' => now()->toIso8601String(),
@@ -153,19 +228,15 @@ class GeminiController extends Controller
 
                 $userId = $existingSession->user_id ?? $userId;
             } else {
-                // New session: generate fresh id
-                // If anonymous, generate a UUID public id; if logged in, attach to user_id
-                $publicId = null;
-                if (empty($userId)) {
-                    $publicId = (string) Str::uuid();
-                }
+                $sessionId = (string) Str::uuid();
 
-                // Use the publicId as session id for anonymous sessions so clients can reference it
-                $sessionId = $publicId ?? (string) Str::uuid();
+                // Generate AI-powered title for new sessions
+                // This mimics how ChatGPT/Gemini generates conversation titles
+                $generatedTitle = $this->generateChatTitle($client, $validated['prompt'], $replyText);
 
                 $session = [
                     'id' => $sessionId,
-                    'title' => substr($validated['prompt'], 0, 200),
+                    'title' => $generatedTitle,
                     'messages' => [
                         [
                             'id' => (string) $tsUser,
@@ -183,20 +254,31 @@ class GeminiController extends Controller
                     ],
                     'updatedAt' => now()->toIso8601String(),
                 ];
-
-                // For new session, assign publicId if not set
-                if (empty($publicId)) {
-                    $publicId = $sessionId;
-                }
             }
 
             // Dispatch saving after response to avoid blocking the API response
             Bus::dispatchAfterResponse(new SaveChatActivity($session, $userId, $publicId));
+
+            // Update currentMessageCount to reflect the actual count from existing session
+            $currentMessageCount = count($session['messages'] ?? []);
         } catch (\Throwable $e) {
             Log::error('Failed to persist chat activity', ['error' => $e->getMessage()]);
+            // Fallback: use the message count from request + new exchange
+            $currentMessageCount = $messageCount + 2;
+        }
+
+        // Add doctor consultation suggestion to reply text after 4 exchanges (8 messages)
+        // Only if not already urgent (which already has consultation suggestion)
+        if (!$urgent && $currentMessageCount >= 8 && stripos($replyText, 'consultation') === false) {
+            $doctorSuggestion = "\n\n💡 *Sudah beberapa kali kita berdiskusi tentang kesehatan Anda. Untuk penanganan yang lebih tepat dan menyeluruh, saya sarankan untuk berkonsultasi langsung dengan dokter kami ya!*\n\nconsultation";
+            $replyText = trim($replyText) . $doctorSuggestion;
         }
 
         $packageSuggestions = $this->detectPackageRecommendations($validated['prompt'].' '.$replyText);
+
+        // Use the actual message count (from session) for consultation suggestion
+        // Suggest consultation after 4 exchanges (8 messages)
+        $suggestConsultation = $currentMessageCount >= 8;
 
         $actions = [];
         if ($urgent) {
@@ -204,6 +286,16 @@ class GeminiController extends Controller
                 'type' => 'consultation',
                 'label' => 'Konsultasi dengan Dokter',
                 'url' => '/consultation',
+                'reason' => 'urgent',
+            ];
+        } elseif ($suggestConsultation) {
+            // Add consultation suggestion after 4-5 chat exchanges
+            $actions[] = [
+                'type' => 'consultation',
+                'label' => 'Konsultasi dengan Dokter',
+                'url' => '/consultation',
+                'reason' => 'extended_chat',
+                'message' => 'Untuk penanganan lebih lanjut, Anda bisa berkonsultasi langsung dengan dokter kami.',
             ];
         }
 
@@ -220,7 +312,9 @@ class GeminiController extends Controller
             'raw' => $response,
             'urgent' => $urgent,
             'actions' => $actions,
-            'session_id' => $session['id'] ?? null,
+            'session_id' => $sessionId ?? null,  // unique per chat session (primary key)
+            'public_id' => $publicId ?? null,    // persistent per user/device
+            'title' => $session['title'] ?? null, // AI-generated title for the session
         ]);
     }
 

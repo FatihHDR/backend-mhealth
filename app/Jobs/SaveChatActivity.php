@@ -38,24 +38,17 @@ class SaveChatActivity implements ShouldQueue
             // Determine target session to update or create
             $target = null;
 
-            // If session includes an id, try public_id first (that's what we use as session_id),
-            // then fallback to primary key lookup
-            $incomingId = $this->session['id'] ?? null;
-            if (! empty($incomingId)) {
-                $target = ChatActivity::where('public_id', $incomingId)->first();
-                if (! $target) {
-                    $target = ChatActivity::find($incomingId);
-                }
+            // session['id'] is the session_id (primary key in chat_activity table)
+            $sessionId = $this->session['id'] ?? null;
+
+            // Only find by session_id (primary key) - no fallback to public_id
+            // This ensures new sessions are created when FE wants a new chat
+            if (! empty($sessionId)) {
+                $target = ChatActivity::find($sessionId);
             }
 
-            // Fallback: if job has publicId (generated for anonymous sessions), try to find it
-            if (! $target && ! empty($this->publicId)) {
-                $target = ChatActivity::where('public_id', $this->publicId)->first();
-            }
-
-            // If user is authenticated and we still didn't find a session, do NOT auto-attach
-            // to an arbitrary previous session — create a new one instead. The frontend should
-            // provide session id/public_id when it's continuing an existing session.
+            // NOTE: We intentionally do NOT fallback to public_id lookup
+            // The session_id must match for us to update an existing session
 
             if ($target) {
                 // Update existing session's chat_activity_data and title
@@ -72,13 +65,20 @@ class SaveChatActivity implements ShouldQueue
                 }
                 $target->save();
             } else {
-                // Create new session row (this happens when frontend indicates a new session)
-                ChatActivity::create([
-                    'title' => isset($this->session['title']) ? (string) $this->session['title'] : '',
-                    'chat_activity_data' => $this->session,
-                    'public_id' => $this->publicId,
-                    'user_id' => $this->userId,
-                ]);
+                // Create new session row with session_id as the primary key
+                $sessionId = $this->session['id'] ?? null;
+                $newSession = new ChatActivity();
+                
+                // Set the primary key explicitly if provided
+                if ($sessionId) {
+                    $newSession->id = $sessionId;
+                }
+                
+                $newSession->title = isset($this->session['title']) ? (string) $this->session['title'] : '';
+                $newSession->chat_activity_data = $this->session;
+                $newSession->public_id = $this->publicId;
+                $newSession->user_id = $this->userId;
+                $newSession->save();
             }
         } catch (\Throwable $e) {
             Log::error('SaveChatActivity job failed', ['error' => $e->getMessage(), 'session' => $this->session]);

@@ -63,6 +63,7 @@ Route::group([
     Route::post('chat-activities', [ChatHistoryController::class, 'store']);
     // CRUD for stored chat sessions (index, show, update, destroy)
     Route::get('chat-activities', [ChatActivityController::class, 'index']);
+    Route::get('chat-activities/all/{public_id}', [ChatActivityController::class, 'all']);
     Route::get('chat-activities/{chat_activity}', [ChatActivityController::class, 'show']);
     Route::put('chat-activities/{chat_activity}', [ChatActivityController::class, 'update']);
     Route::patch('chat-activities/{chat_activity}', [ChatActivityController::class, 'update']);
