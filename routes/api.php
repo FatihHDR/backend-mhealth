@@ -31,7 +31,6 @@ use App\Http\Controllers\Api\V1\ChatHistoryController;
 Route::group([
     'prefix' => 'v1',
     'namespace' => 'App\Http\Controllers\Api\V1',
-    // Force JSON responses for all API routes to avoid HTML redirects on errors
     'middleware' => [\App\Http\Middleware\ForceJsonForApi::class],
 ], function () {
     // Public auth
@@ -42,10 +41,8 @@ Route::group([
 
     // New
     Route::post('gemini/generate', GeminiController::class);
-    // Centralized upload endpoint: accepts a module/resource parameter
-    // Example: POST /api/v1/medical/upload or /api/v1/vendors/upload
-    Route::post('{module}/upload', [UploadController::class, 'upload'])
-        ->where('module', 'medical|vendors|packages|wellness|hotels|medical-equipment|medical_equipment|articles|events|accounts|users|latest-packages|about-us');
+
+    Route::post('upload-image', [UploadController::class, 'uploadImage']);
     Route::apiResource('about-us', AboutUsController::class);
     Route::apiResource('latest-packages', LatestPackagesController::class);
     Route::apiResource('medical', MedicalController::class);
@@ -87,7 +84,7 @@ Route::group([
 
     Route::middleware(VerifySupabaseJwt::class)->group(function () {
         Route::get('me', function (\Illuminate\Http\Request $request) {
-            // Try to find an account matching the Supabase user id (sub) or email.
+
             $supabase = $request->attributes->get('supabase_user');
             $supabaseId = $request->attributes->get('supabase_user_id');
             $email = $supabase->email ?? null;
@@ -101,9 +98,6 @@ Route::group([
                 $account = \App\Models\Account::where('email', $email)->first();
             }
 
-            // If account doesn't exist, create a minimal one so the client always
-            // receives the expected properties. We only fill email/fullname; other
-            // profile fields can be updated later by the client.
             if (! $account) {
                 $account = new \App\Models\Account();
                 if ($supabaseId) {
@@ -111,7 +105,6 @@ Route::group([
                 }
                 $account->email = $email;
 
-                // attempt to derive a fullname from user metadata if available
                 $fullname = null;
                 if (isset($supabase->user_metadata) && is_object($supabase->user_metadata)) {
                     $fullname = $supabase->user_metadata->full_name ?? $supabase->user_metadata->name ?? null;
@@ -120,7 +113,6 @@ Route::group([
                 $account->save();
             }
 
-            // Extract Google metadata if user logged in via Google
             $userMeta = $supabase->user_metadata ?? null;
             $isGoogle = $userMeta && isset($userMeta->iss) && str_contains($userMeta->iss, 'google.com');
             $googleFullname = $isGoogle ? ($userMeta->full_name ?? $userMeta->name ?? null) : null;
