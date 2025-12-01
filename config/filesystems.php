@@ -49,15 +49,19 @@ return [
 
         's3' => [
             'driver' => 's3',
-            'key' => env('AWS_ACCESS_KEY_ID'),
-            'secret' => env('AWS_SECRET_ACCESS_KEY'),
-            'region' => env('AWS_DEFAULT_REGION'),
-            'bucket' => env('AWS_BUCKET'),
+            'key' => env('S3_ACCESS_KEY'),
+            'secret' => env('S3_SECRET_KEY'),
+            'region' => env('NEXT_PUBLIC_S3_REGION', 'ap-south-1'),
+            'bucket' => env('AWS_BUCKET', 'm-health-public'),
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
-            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
-            'report' => false,
+            'use_path_style_endpoint' => true,
+            'throw' => true, // Throw exceptions on error for better debugging
+            'visibility' => 'public',
+            'options' => [
+                'timeout' => 30, // 30 seconds timeout
+                'connect_timeout' => 10, // 10 seconds connection timeout
+            ],
         ],
 
     ],

@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\Paginates;
 use App\Models\Event;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class EventController extends Controller
 {
     use Paginates;
+
     public function index()
     {
         $query = Event::orderBy('start_date', 'desc');
@@ -22,6 +25,155 @@ class EventController extends Controller
         $event = Event::findOrFail($id);
 
         return response()->json($event);
+    }
+
+    /**
+     * Create a new Event.
+     * 
+     * POST /api/v1/events
+     * 
+     * Payload:
+     * {
+     *   "title": "Event Title",                                    // Required - will be used for both en_title and id_title
+     *   "en_title": "English Title",                               // Optional - override English title
+     *   "id_title": "Judul Indonesia",                             // Optional - override Indonesian title
+     *   "description": "Event description...",                     // Optional - will be used for both en/id description
+     *   "en_description": "English description...",                // Optional
+     *   "id_description": "Deskripsi Indonesia...",                // Optional
+     *   "highlight_image": "https://supabase.../event.jpg",        // Optional - Supabase bucket URL
+     *   "reference_image": "https://supabase.../ref.jpg",          // Optional - Supabase bucket URL
+     *   "organized_image": "https://supabase.../org.jpg",          // Optional - Organizer logo URL
+     *   "organized_by": "Company Name",                            // Optional
+     *   "start_date": "2025-01-15T09:00:00",                       // Required - ISO datetime
+     *   "end_date": "2025-01-15T17:00:00",                         // Required - ISO datetime
+     *   "location_name": "Jakarta Convention Center",              // Optional
+     *   "location_map": "https://maps.google.com/...",             // Optional - Google Maps URL
+     *   "status": "upcoming"                                       // Optional - upcoming/ongoing/past
+     * }
+     */
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'title' => 'required_without_all:en_title,id_title|string|max:255',
+            'en_title' => 'nullable|string|max:255',
+            'id_title' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'en_description' => 'nullable|string',
+            'id_description' => 'nullable|string',
+            'highlight_image' => 'nullable|url',
+            'reference_image' => 'nullable|url',
+            'organized_image' => 'nullable|url',
+            'organized_by' => 'nullable|string|max:255',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'location_name' => 'nullable|string|max:255',
+            'location_map' => 'nullable|url',
+            'status' => 'nullable|string|in:upcoming,ongoing,past',
+        ]);
+
+        $payload = [
+            'en_title' => $data['en_title'] ?? $data['title'] ?? '',
+            'id_title' => $data['id_title'] ?? $data['title'] ?? '',
+            'slug' => Str::slug($data['en_title'] ?? $data['title'] ?? Str::random(10)),
+            'en_description' => $data['en_description'] ?? $data['description'] ?? null,
+            'id_description' => $data['id_description'] ?? $data['description'] ?? null,
+            'highlight_image' => $data['highlight_image'] ?? null,
+            'reference_image' => $data['reference_image'] ?? null,
+            'organized_image' => $data['organized_image'] ?? null,
+            'organized_by' => $data['organized_by'] ?? null,
+            'start_date' => $data['start_date'],
+            'end_date' => $data['end_date'],
+            'location_name' => $data['location_name'] ?? null,
+            'location_map' => $data['location_map'] ?? null,
+            'status' => $data['status'] ?? 'upcoming',
+        ];
+
+        $event = Event::create($payload);
+
+        return response()->json([
+            'message' => 'Event created successfully',
+            'data' => $event,
+        ], 201);
+    }
+
+    /**
+     * Update an Event.
+     * 
+     * PUT/PATCH /api/v1/events/{id}
+     * 
+     * Payload: Same as store, all fields optional
+     */
+    public function update(Request $request, $id)
+    {
+        $event = Event::findOrFail($id);
+
+        $data = $request->validate([
+            'title' => 'nullable|string|max:255',
+            'en_title' => 'nullable|string|max:255',
+            'id_title' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'en_description' => 'nullable|string',
+            'id_description' => 'nullable|string',
+            'highlight_image' => 'nullable|url',
+            'reference_image' => 'nullable|url',
+            'organized_image' => 'nullable|url',
+            'organized_by' => 'nullable|string|max:255',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'location_name' => 'nullable|string|max:255',
+            'location_map' => 'nullable|url',
+            'status' => 'nullable|string|in:upcoming,ongoing,past',
+        ]);
+
+        $payload = [];
+
+        if (isset($data['title'])) {
+            $payload['en_title'] = $data['en_title'] ?? $data['title'];
+            $payload['id_title'] = $data['id_title'] ?? $data['title'];
+            $payload['slug'] = Str::slug($data['en_title'] ?? $data['title']);
+        } else {
+            if (isset($data['en_title'])) {
+                $payload['en_title'] = $data['en_title'];
+                $payload['slug'] = Str::slug($data['en_title']);
+            }
+            if (isset($data['id_title'])) $payload['id_title'] = $data['id_title'];
+        }
+
+        if (isset($data['description'])) {
+            $payload['en_description'] = $data['en_description'] ?? $data['description'];
+            $payload['id_description'] = $data['id_description'] ?? $data['description'];
+        } else {
+            if (isset($data['en_description'])) $payload['en_description'] = $data['en_description'];
+            if (isset($data['id_description'])) $payload['id_description'] = $data['id_description'];
+        }
+
+        $directFields = ['highlight_image', 'reference_image', 'organized_image', 'organized_by', 
+                         'start_date', 'end_date', 'location_name', 'location_map', 'status'];
+        foreach ($directFields as $key) {
+            if (array_key_exists($key, $data)) {
+                $payload[$key] = $data[$key];
+            }
+        }
+
+        $event->update($payload);
+
+        return response()->json([
+            'message' => 'Event updated successfully',
+            'data' => $event->fresh(),
+        ]);
+    }
+
+    /**
+     * Delete an Event.
+     * 
+     * DELETE /api/v1/events/{id}
+     */
+    public function destroy($id)
+    {
+        $event = Event::findOrFail($id);
+        $event->delete();
+
+        return response()->json(['message' => 'Event deleted successfully']);
     }
 
     public function upcoming()
