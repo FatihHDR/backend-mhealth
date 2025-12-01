@@ -112,4 +112,32 @@ class ChatActivityController extends Controller
 
         return response()->json(['message' => 'Deleted'], 200);
     }
+
+    /**
+     * Remove ALL sessions for a specific public_id.
+     * Endpoint: DELETE /chat-activities/all/{public_id}
+     */
+    public function destroyByPublicId(string $public_id)
+    {
+        try {
+            $count = ChatActivity::where('public_id', $public_id)->count();
+
+            if ($count === 0) {
+                return response()->json(['message' => 'No sessions found for this public_id'], 404);
+            }
+
+            ChatActivity::where('public_id', $public_id)->delete();
+
+            return response()->json([
+                'message' => 'All sessions deleted',
+                'deleted_count' => $count,
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('Failed to delete sessions by public_id', [
+                'error' => $e->getMessage(),
+                'public_id' => $public_id,
+            ]);
+            return response()->json(['message' => 'Delete failed'], 500);
+        }
+    }
 }
