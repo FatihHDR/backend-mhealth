@@ -65,23 +65,55 @@ class AiAgent
 
     /**
      * Try to extract the most relevant textual reply from the Gemini response array.
-     * Uses a heuristic: collect all string values and return the longest one.
+     * Properly parses the Gemini API response structure.
      */
     private function extractTextFromResponse(array $response): string
     {
-        $strings = [];
+        // Gemini API response structure:
+        // { "candidates": [{ "content": { "parts": [{ "text": "..." }] } }] }
+        $candidates = $response['candidates'] ?? [];
+        if (!empty($candidates)) {
+            $firstCandidate = $candidates[0] ?? [];
+            $content = $firstCandidate['content'] ?? [];
+            $parts = $content['parts'] ?? [];
+            
+            if (!empty($parts)) {
+                $text = $parts[0]['text'] ?? null;
+                if ($text !== null && is_string($text)) {
+                    return trim($text);
+                }
+            }
+        }
 
+        // Fallback: collect strings but filter out base64/encoded data
+        $strings = [];
         $this->collectStringsRecursive($response, $strings);
 
         if (empty($strings)) {
             return '';
         }
 
-        usort($strings, function ($a, $b) {
+        // Filter out base64-like strings
+        $readableStrings = array_filter($strings, function($s) {
+            if (strlen($s) > 100 && preg_match('/^[A-Za-z0-9+\/=]+$/', $s)) {
+                return false;
+            }
+            $spaceRatio = substr_count($s, ' ') / max(strlen($s), 1);
+            if (strlen($s) > 50 && $spaceRatio < 0.05) {
+                return false;
+            }
+            return true;
+        });
+
+        if (empty($readableStrings)) {
+            return 'Maaf, terjadi kesalahan dalam memproses respons. Silakan coba lagi.';
+        }
+
+        usort($readableStrings, function ($a, $b) {
             return strlen($b) <=> strlen($a);
         });
 
-        return trim($strings[0]);
+        return trim($readableStrings[0]);
     }
 
     private function collectStringsRecursive($value, array &$out)

@@ -144,7 +144,23 @@ PROMPT;
             $validated['options'] ?? []
         );
 
+        // Log raw response structure for debugging
+        Log::debug('Gemini API raw response structure', [
+            'has_candidates' => isset($response['candidates']),
+            'candidates_count' => count($response['candidates'] ?? []),
+            'first_candidate_keys' => array_keys($response['candidates'][0] ?? []),
+        ]);
+
         $replyText = $this->extractTextFromResponse($response);
+
+        // Log if extracted text looks suspicious (too short or encoded)
+        if (strlen($replyText) < 10 || preg_match('/^[A-Za-z0-9+\/=]{50,}$/', substr($replyText, 0, 100))) {
+            Log::warning('Gemini extracted text looks suspicious', [
+                'text_length' => strlen($replyText),
+                'text_preview' => substr($replyText, 0, 200),
+                'raw_response' => $response,
+            ]);
+        }
 
         $urgent = $this->detectEmergency($validated['prompt'].' '.$replyText);
 
@@ -390,18 +406,96 @@ PROMPT;
 
     private function extractTextFromResponse(array $response): string
     {
+        // Gemini API response structure:
+        // {
+        //   "candidates": [
+        //     {
+        //       "content": {
+        //         "parts": [
+        //           { "text": "The actual response text" }
+        //         ]
+        //       }
+        //     }
+        //   ]
+        // }
+
+        // Try to extract from the correct path first
+        $candidates = $response['candidates'] ?? [];
+        if (!empty($candidates)) {
+            $firstCandidate = $candidates[0] ?? [];
+            $content = $firstCandidate['content'] ?? [];
+            $parts = $content['parts'] ?? [];
+            
+            if (!empty($parts)) {
+                $firstPart = $parts[0] ?? [];
+                $text = $firstPart['text'] ?? null;
+                
+                if ($text !== null && is_string($text)) {
+                    return trim($text);
+                }
+            }
+        }
+
+        // Fallback: try to find 'text' key anywhere in response
+        $text = $this->findTextInResponse($response);
+        if ($text !== null) {
+            return trim($text);
+        }
+
+        // Last resort: collect all strings and return the longest readable one
         $strings = [];
         $this->collectStringsRecursive($response, $strings);
 
         if (empty($strings)) {
+            Log::warning('Gemini response has no extractable text', ['response' => $response]);
             return '';
         }
 
-        usort($strings, function ($a, $b) {
+        // Filter out base64-like strings (they contain mostly alphanumeric + /+=)
+        $readableStrings = array_filter($strings, function($s) {
+            // Skip if it looks like base64 (mostly alphanumeric, +, /, =)
+            if (strlen($s) > 100 && preg_match('/^[A-Za-z0-9+\/=]+$/', $s)) {
+                return false;
+            }
+            // Skip if it has very few spaces (likely encoded data)
+            $spaceRatio = substr_count($s, ' ') / max(strlen($s), 1);
+            if (strlen($s) > 50 && $spaceRatio < 0.05) {
+                return false;
+            }
+            return true;
+        });
+
+        if (empty($readableStrings)) {
+            Log::warning('Gemini response contains only encoded data', ['response' => $response]);
+            return 'Maaf, terjadi kesalahan dalam memproses respons. Silakan coba lagi.';
+        }
+
+        usort($readableStrings, function ($a, $b) {
             return strlen($b) <=> strlen($a);
         });
 
-        return trim($strings[0]);
+        return trim($readableStrings[0]);
+    }
+
+    /**
+     * Recursively find 'text' key in response array
+     */
+    private function findTextInResponse(array $data): ?string
+    {
+        if (isset($data['text']) && is_string($data['text'])) {
+            return $data['text'];
+        }
+
+        foreach ($data as $value) {
+            if (is_array($value)) {
+                $result = $this->findTextInResponse($value);
+                if ($result !== null) {
+                    return $result;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function collectStringsRecursive($value, array &$out)

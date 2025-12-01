@@ -12,7 +12,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Cleanup database connections after each request (prevents pgbouncer connection exhaustion)
+        $middleware->append(\App\Http\Middleware\CleanupDatabaseConnections::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
