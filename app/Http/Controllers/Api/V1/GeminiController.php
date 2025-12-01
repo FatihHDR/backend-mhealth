@@ -33,6 +33,8 @@ class GeminiController extends Controller
             'messages' => ['sometimes', 'array'],
             'messages.*.sender' => ['required_with:messages', 'string'],
             'messages.*.message' => ['required_with:messages', 'string'],
+            // Optional session_id to continue an existing session (prevents new row creation)
+            'session_id' => ['sometimes', 'string', 'nullable'],
         ]);
 
         $systemInstruction = 'You are Mei, a gentle, empathetic, and informative virtual health assistant. '.
@@ -89,35 +91,86 @@ class GeminiController extends Controller
             $tsUser = (int) (microtime(true) * 1000);
             $tsBot = $tsUser + 10;
 
-            // If anonymous, generate a UUID public id; if logged in, attach to user_id
-            $publicId = null;
-            if (empty($userId)) {
-                $publicId = (string) Str::uuid();
+            // Check if frontend wants to continue an existing session
+            $incomingSessionId = $validated['session_id'] ?? null;
+            $existingSession = null;
+
+            if (! empty($incomingSessionId)) {
+                // Try to find by primary id first, then by public_id
+                $existingSession = ChatActivity::find($incomingSessionId);
+                if (! $existingSession) {
+                    $existingSession = ChatActivity::where('public_id', $incomingSessionId)->first();
+                }
             }
 
-            // Use the publicId as session id for anonymous sessions so clients can reference it
-            $sessionId = $publicId ?? '_'.substr(bin2hex(random_bytes(8)), 0, 20);
+            if ($existingSession) {
+                // Continue existing session: merge new messages into existing data
+                $sessionData = $existingSession->chat_activity_data;
+                $existingMessages = $sessionData['messages'] ?? [];
 
-            $session = [
-                'id' => $sessionId,
-                'title' => substr($validated['prompt'], 0, 200),
-                'messages' => [
-                    [
-                        'id' => (string) $tsUser,
-                        'message' => $validated['prompt'],
-                        'sender' => 'user',
-                        'timestamp' => now()->toIso8601String(),
-                        'replyTo' => null,
+                // Append new user message
+                $existingMessages[] = [
+                    'id' => (string) $tsUser,
+                    'message' => $validated['prompt'],
+                    'sender' => 'user',
+                    'timestamp' => now()->toIso8601String(),
+                    'replyTo' => null,
+                ];
+
+                // Append bot reply
+                $existingMessages[] = [
+                    'id' => (string) $tsBot,
+                    'message' => $replyText,
+                    'sender' => 'bot',
+                    'timestamp' => now()->toIso8601String(),
+                ];
+
+                $session = [
+                    'id' => $existingSession->public_id ?? $existingSession->id,
+                    'title' => $sessionData['title'] ?? substr($validated['prompt'], 0, 200),
+                    'messages' => $existingMessages,
+                    'updatedAt' => now()->toIso8601String(),
+                ];
+
+                $publicId = $existingSession->public_id;
+                $userId = $existingSession->user_id ?? $userId;
+            } else {
+                // New session: generate fresh id
+                // If anonymous, generate a UUID public id; if logged in, attach to user_id
+                $publicId = null;
+                if (empty($userId)) {
+                    $publicId = (string) Str::uuid();
+                }
+
+                // Use the publicId as session id for anonymous sessions so clients can reference it
+                $sessionId = $publicId ?? (string) Str::uuid();
+
+                $session = [
+                    'id' => $sessionId,
+                    'title' => substr($validated['prompt'], 0, 200),
+                    'messages' => [
+                        [
+                            'id' => (string) $tsUser,
+                            'message' => $validated['prompt'],
+                            'sender' => 'user',
+                            'timestamp' => now()->toIso8601String(),
+                            'replyTo' => null,
+                        ],
+                        [
+                            'id' => (string) $tsBot,
+                            'message' => $replyText,
+                            'sender' => 'bot',
+                            'timestamp' => now()->toIso8601String(),
+                        ],
                     ],
-                    [
-                        'id' => (string) $tsBot,
-                        'message' => $replyText,
-                        'sender' => 'bot',
-                        'timestamp' => now()->toIso8601String(),
-                    ],
-                ],
-                'updatedAt' => now()->toIso8601String(),
-            ];
+                    'updatedAt' => now()->toIso8601String(),
+                ];
+
+                // For new session, assign publicId if not set
+                if (empty($publicId)) {
+                    $publicId = $sessionId;
+                }
+            }
 
             // Dispatch saving after response to avoid blocking the API response
             Bus::dispatchAfterResponse(new SaveChatActivity($session, $userId, $publicId));
@@ -149,6 +202,7 @@ class GeminiController extends Controller
             'raw' => $response,
             'urgent' => $urgent,
             'actions' => $actions,
+            'session_id' => $session['id'] ?? null,
         ]);
     }
 
