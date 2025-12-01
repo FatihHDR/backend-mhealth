@@ -38,12 +38,13 @@ class SaveChatActivity implements ShouldQueue
             // Determine target session to update or create
             $target = null;
 
-            // If session includes an id, try primary key then public_id lookup
+            // If session includes an id, try public_id first (that's what we use as session_id),
+            // then fallback to primary key lookup
             $incomingId = $this->session['id'] ?? null;
             if (! empty($incomingId)) {
-                $target = ChatActivity::find($incomingId);
+                $target = ChatActivity::where('public_id', $incomingId)->first();
                 if (! $target) {
-                    $target = ChatActivity::where('public_id', $incomingId)->first();
+                    $target = ChatActivity::find($incomingId);
                 }
             }
 

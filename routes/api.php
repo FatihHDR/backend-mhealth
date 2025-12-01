@@ -83,22 +83,63 @@ Route::group([
 
     Route::middleware(VerifySupabaseJwt::class)->group(function () {
         Route::get('me', function (\Illuminate\Http\Request $request) {
-            \Illuminate\Support\Facades\Log::debug('API /me called', [
-                'headers' => $request->headers->all(),
-                'cookies' => $request->cookies->all(),
-                'session_id' => session()->getId(),
-                'session' => session()->all(),
-                'supabase_user' => $request->attributes->get('supabase_user'),
-                'supabase_user_id' => $request->attributes->get('supabase_user_id'),
-                'supabase_user_role' => $request->attributes->get('supabase_user_role'),
-            ]);
+            // Try to find an account matching the Supabase user id (sub) or email.
+            $supabase = $request->attributes->get('supabase_user');
+            $supabaseId = $request->attributes->get('supabase_user_id');
+            $email = $supabase->email ?? null;
 
-            return response()->json([
-                'user' => [
-                    'supabase_id' => $request->attributes->get('supabase_user_id'),
-                    'payload' => $request->attributes->get('supabase_user'),
-                ],
-            ]);
+            $account = null;
+            if ($supabaseId) {
+                $account = \App\Models\Account::find($supabaseId);
+            }
+
+            if (! $account && $email) {
+                $account = \App\Models\Account::where('email', $email)->first();
+            }
+
+            // If account doesn't exist, create a minimal one so the client always
+            // receives the expected properties. We only fill email/fullname; other
+            // profile fields can be updated later by the client.
+            if (! $account) {
+                $account = new \App\Models\Account();
+                if ($supabaseId) {
+                    $account->id = $supabaseId;
+                }
+                $account->email = $email;
+
+                // attempt to derive a fullname from user metadata if available
+                $fullname = null;
+                if (isset($supabase->user_metadata) && is_object($supabase->user_metadata)) {
+                    $fullname = $supabase->user_metadata->full_name ?? $supabase->user_metadata->name ?? null;
+                }
+                $account->fullname = $fullname;
+                $account->save();
+            }
+
+            // Extract Google metadata if user logged in via Google
+            $userMeta = $supabase->user_metadata ?? null;
+            $isGoogle = $userMeta && isset($userMeta->iss) && str_contains($userMeta->iss, 'google.com');
+            $googleFullname = $isGoogle ? ($userMeta->full_name ?? $userMeta->name ?? null) : null;
+            $googleAvatar = $isGoogle ? ($userMeta->avatar_url ?? $userMeta->picture ?? null) : null;
+
+            $resp = [
+                'id' => (string) $account->id,
+                'created_at' => $account->created_at ? $account->created_at->toISOString() : null,
+                'updated_at' => $account->updated_at ? $account->updated_at->toISOString() : null,
+                'email' => $account->email,
+                'fullname' => $account->fullname,
+                'phone' => $account->phone,
+                'gender' => $account->gender,
+                'domicile' => $account->domicile,
+                'height' => $account->height,
+                'weight' => $account->weight,
+                'avatar_url' => $account->avatar_url,
+                'birthdate' => $account->birthdate ? $account->birthdate->toDateString() : null,
+                'google_fullname' => $googleFullname,
+                'google_avatar' => $googleAvatar,
+            ];
+
+            return response()->json($resp);
         });
 
         Route::post('logout', [AuthController::class, 'logout']);

@@ -95,11 +95,27 @@ class GeminiController extends Controller
             $incomingSessionId = $validated['session_id'] ?? null;
             $existingSession = null;
 
+            // DEBUG: Log incoming session_id to verify FE is sending it
+            Log::debug('GeminiController session lookup', [
+                'incoming_session_id' => $incomingSessionId,
+                'user_id' => $userId,
+            ]);
+
             if (! empty($incomingSessionId)) {
-                // Try to find by primary id first, then by public_id
-                $existingSession = ChatActivity::find($incomingSessionId);
+                // Try to find by public_id first (that's what we return as session_id),
+                // then fallback to primary id
+                $existingSession = ChatActivity::where('public_id', $incomingSessionId)->first();
                 if (! $existingSession) {
-                    $existingSession = ChatActivity::where('public_id', $incomingSessionId)->first();
+                    $existingSession = ChatActivity::find($incomingSessionId);
+                }
+                Log::debug('GeminiController session found', [
+                    'found' => $existingSession ? true : false,
+                    'existing_id' => $existingSession?->id,
+                    'existing_public_id' => $existingSession?->public_id,
+                ]);
+            }
+                if (! $existingSession) {
+                    $existingSession = ChatActivity::find($incomingSessionId);
                 }
             }
 
@@ -125,14 +141,16 @@ class GeminiController extends Controller
                     'timestamp' => now()->toIso8601String(),
                 ];
 
+                // Use public_id as the session identifier (this is what FE receives and sends back)
+                $publicId = $existingSession->public_id;
+
                 $session = [
-                    'id' => $existingSession->public_id ?? $existingSession->id,
+                    'id' => $publicId,
                     'title' => $sessionData['title'] ?? substr($validated['prompt'], 0, 200),
                     'messages' => $existingMessages,
                     'updatedAt' => now()->toIso8601String(),
                 ];
 
-                $publicId = $existingSession->public_id;
                 $userId = $existingSession->user_id ?? $userId;
             } else {
                 // New session: generate fresh id
