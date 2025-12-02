@@ -68,6 +68,33 @@ class ChatActivityController extends Controller
     }
 
     /**
+     * Get specific message from a chat session.
+     * Endpoint: GET /api/v1/chat-activities/{session_id}/message/{message_id}
+     */
+    public function getMessage(string $sessionId, string $messageId)
+    {
+        $session = ChatActivity::find($sessionId);
+
+        if (! $session) {
+            return response()->json(['message' => 'Session not found'], 404);
+        }
+
+        $messages = $session->chat_activity_data['messages'] ?? [];
+        
+        foreach ($messages as $message) {
+            if (isset($message['id']) && $message['id'] === $messageId) {
+                return response()->json([
+                    'message' => $message,
+                    'session_id' => $session->id,
+                    'session_title' => $session->title,
+                ]);
+            }
+        }
+
+        return response()->json(['message' => 'Message not found'], 404);
+    }
+
+    /**
      * Update the specified session (title or chat_activity_data).
      */
     public function update(Request $request, $id)

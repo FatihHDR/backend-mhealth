@@ -64,6 +64,8 @@ Route::group([
     Route::get('chat-activities/all/{public_id}', [ChatActivityController::class, 'all']);
     // Delete ALL sessions for a specific public_id (clear all history)
     Route::delete('chat-activities/all/{public_id}', [ChatActivityController::class, 'destroyByPublicId']);
+    // Get specific message from a session (for reply feature)
+    Route::get('chat-activities/{session_id}/message/{message_id}', [ChatActivityController::class, 'getMessage']);
     Route::get('chat-activities/{chat_activity}', [ChatActivityController::class, 'show']);
     Route::put('chat-activities/{chat_activity}', [ChatActivityController::class, 'update']);
     Route::patch('chat-activities/{chat_activity}', [ChatActivityController::class, 'update']);

@@ -90,6 +90,7 @@ PROMPT;
             'session_id' => ['sometimes', 'string', 'nullable'],
             'public_id' => ['sometimes', 'string', 'nullable'],
             'new_session' => ['sometimes', 'boolean'],
+            'reply_to' => ['sometimes', 'string', 'nullable'], // ID pesan yang di-reply
         ]);
 
         $systemInstruction = 'You are Mei, a gentle, empathetic, and informative virtual health assistant. '.
@@ -184,6 +185,7 @@ PROMPT;
             $incomingSessionId = $validated['session_id'] ?? null;
             $incomingPublicId = $validated['public_id'] ?? null;
             $forceNewSession = $validated['new_session'] ?? false;
+            $replyToId = $validated['reply_to'] ?? null; // Message ID yang di-reply
             $existingSession = null;
 
             Log::debug('GeminiController session lookup', [
@@ -217,12 +219,27 @@ PROMPT;
                 $sessionData = $existingSession->chat_activity_data;
                 $existingMessages = $sessionData['messages'] ?? [];
 
+                // Cari pesan yang di-reply (jika ada)
+                $repliedMessage = null;
+                if ($replyToId) {
+                    foreach ($existingMessages as $msg) {
+                        if (isset($msg['id']) && $msg['id'] === $replyToId) {
+                            $repliedMessage = [
+                                'id' => $msg['id'],
+                                'message' => $msg['message'],
+                                'sender' => $msg['sender'],
+                            ];
+                            break;
+                        }
+                    }
+                }
+
                 $existingMessages[] = [
                     'id' => (string) $tsUser,
                     'message' => $validated['prompt'],
                     'sender' => 'user',
                     'timestamp' => now()->toIso8601String(),
-                    'replyTo' => null,
+                    'replyTo' => $repliedMessage, // Null jika tidak reply
                 ];
 
                 $existingMessages[] = [
@@ -230,6 +247,7 @@ PROMPT;
                     'message' => $replyText,
                     'sender' => 'bot',
                     'timestamp' => now()->toIso8601String(),
+                    'replyTo' => null,
                 ];
 
                 $publicId = $existingSession->public_id;
@@ -259,13 +277,14 @@ PROMPT;
                             'message' => $validated['prompt'],
                             'sender' => 'user',
                             'timestamp' => now()->toIso8601String(),
-                            'replyTo' => null,
+                            'replyTo' => null, // First message tidak ada reply
                         ],
                         [
                             'id' => (string) $tsBot,
                             'message' => $replyText,
                             'sender' => 'bot',
                             'timestamp' => now()->toIso8601String(),
+                            'replyTo' => null,
                         ],
                     ],
                     'updatedAt' => now()->toIso8601String(),
