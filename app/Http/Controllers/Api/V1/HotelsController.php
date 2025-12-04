@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\SlugHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\Paginates;
 use App\Http\Resources\HotelResource;
@@ -62,7 +63,7 @@ class HotelsController extends Controller
 
         $payload = [
             'name' => $data['name'],
-            'slug' => Str::slug($data['name']),
+            'slug' => SlugHelper::generate($data['name']),
             'en_description' => $data['en_description'] ?? $data['description'] ?? null,
             'id_description' => $data['id_description'] ?? $data['description'] ?? null,
             'logo' => $data['logo'] ?? null,
@@ -103,7 +104,10 @@ class HotelsController extends Controller
 
         if (isset($data['name'])) {
             $payload['name'] = $data['name'];
-            $payload['slug'] = Str::slug($data['name']);
+            $newSlug = SlugHelper::regenerateIfChanged($data['name'], $hotel->slug, $hotel->name);
+            if ($newSlug) {
+                $payload['slug'] = $newSlug;
+            }
         }
 
         if (isset($data['description'])) {

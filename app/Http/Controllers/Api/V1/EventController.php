@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\SlugHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\Paginates;
 use App\Models\Event;
@@ -74,7 +75,7 @@ class EventController extends Controller
         $payload = [
             'en_title' => $data['en_title'] ?? $data['title'] ?? '',
             'id_title' => $data['id_title'] ?? $data['title'] ?? '',
-            'slug' => Str::slug($data['en_title'] ?? $data['title'] ?? Str::random(10)),
+            'slug' => SlugHelper::generate($data['en_title'] ?? $data['title'] ?? Str::random(10)),
             'en_description' => $data['en_description'] ?? $data['description'] ?? null,
             'id_description' => $data['id_description'] ?? $data['description'] ?? null,
             'highlight_image' => $data['highlight_image'] ?? null,
@@ -128,13 +129,20 @@ class EventController extends Controller
         $payload = [];
 
         if (isset($data['title'])) {
-            $payload['en_title'] = $data['en_title'] ?? $data['title'];
+            $newTitle = $data['en_title'] ?? $data['title'];
+            $payload['en_title'] = $newTitle;
             $payload['id_title'] = $data['id_title'] ?? $data['title'];
-            $payload['slug'] = Str::slug($data['en_title'] ?? $data['title']);
+            $newSlug = SlugHelper::regenerateIfChanged($newTitle, $event->slug, $event->en_title);
+            if ($newSlug) {
+                $payload['slug'] = $newSlug;
+            }
         } else {
             if (isset($data['en_title'])) {
                 $payload['en_title'] = $data['en_title'];
-                $payload['slug'] = Str::slug($data['en_title']);
+                $newSlug = SlugHelper::regenerateIfChanged($data['en_title'], $event->slug, $event->en_title);
+                if ($newSlug) {
+                    $payload['slug'] = $newSlug;
+                }
             }
             if (isset($data['id_title'])) $payload['id_title'] = $data['id_title'];
         }

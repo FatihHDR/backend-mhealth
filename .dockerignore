@@ -1,0 +1,13 @@
+vendor
+node_modules
+.env
+/storage/*.key
+/storage/*.pem
+/storage/oauth-private.key
+/storage/oauth-public.key
+/.idea
+/.vscode
+/.git
+.DS_Store
+npm-debug.log
+composer.lock
