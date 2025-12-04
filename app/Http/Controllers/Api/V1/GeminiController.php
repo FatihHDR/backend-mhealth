@@ -302,9 +302,9 @@ PROMPT;
             $currentMessageCount = $messageCount + 2;
         }
 
-        // Add doctor consultation suggestion to reply text after 4 exchanges (8 messages)
+        // Add doctor consultation suggestion to reply text after 3 exchanges (6 messages)
         // Only if not already urgent (which already has consultation suggestion)
-        if (!$urgent && $currentMessageCount >= 8 && stripos($replyText, 'consultation') === false) {
+        if (!$urgent && $currentMessageCount >= 6 && stripos($replyText, 'consultation') === false) {
             $doctorSuggestion = "\n\n💡 *Sudah beberapa kali kita berdiskusi tentang kesehatan Anda. Untuk penanganan yang lebih tepat dan menyeluruh, saya sarankan untuk berkonsultasi langsung dengan dokter kami ya!*\n\nconsultation";
             $replyText = trim($replyText) . $doctorSuggestion;
         }
@@ -312,8 +312,8 @@ PROMPT;
         $packageSuggestions = $this->detectPackageRecommendations($validated['prompt'].' '.$replyText);
 
         // Use the actual message count (from session) for consultation suggestion
-        // Suggest consultation after 4 exchanges (8 messages)
-        $suggestConsultation = $currentMessageCount >= 8;
+        // Suggest consultation after 3 exchanges (6 messages)
+        $suggestConsultation = $currentMessageCount >= 6;
 
         $actions = [];
         if ($urgent) {
@@ -324,7 +324,7 @@ PROMPT;
                 'reason' => 'urgent',
             ];
         } elseif ($suggestConsultation) {
-            // Add consultation suggestion after 4-5 chat exchanges
+            // Add consultation suggestion after 3-5 chat exchanges
             $actions[] = [
                 'type' => 'consultation',
                 'label' => 'Konsultasi dengan Dokter',
