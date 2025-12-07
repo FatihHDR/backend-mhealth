@@ -27,6 +27,7 @@ class Wellness extends Model
         'en_wellness_package_content',
         'id_wellness_package_content',
         'included',
+        'vendor_id',
         'hotel_id',
         'real_price',
         'discount_price',
@@ -39,6 +40,11 @@ class Wellness extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    public function vendor()
+    {
+        return $this->belongsTo(Vendor::class, 'vendor_id');
+    }
 
     public function hotel()
     {

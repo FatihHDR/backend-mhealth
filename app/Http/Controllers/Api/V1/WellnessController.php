@@ -93,6 +93,7 @@ class WellnessController extends Controller
             'duration_by_night' => $data['duration_by_night'] ?? null,
             'spesific_gender' => $data['spesific_gender'] ?? 'both',
             'included' => $data['included'] ?? [],
+            'vendor_id' => $data['vendor_id'] ?? null,
             'hotel_id' => $data['hotel_id'] ?? null,
             'real_price' => $data['real_price'] ?? null,
             'discount_price' => $data['discount_price'] ?? null,
@@ -157,7 +158,7 @@ class WellnessController extends Controller
         }
 
         // Direct fields
-        $directFields = ['highlight_image', 'reference_image', 'duration_by_day', 'duration_by_night', 'spesific_gender', 'included', 'hotel_id', 'real_price', 'discount_price', 'status'];
+        $directFields = ['highlight_image', 'reference_image', 'duration_by_day', 'duration_by_night', 'spesific_gender', 'included', 'vendor_id', 'hotel_id', 'real_price', 'discount_price', 'status'];
         foreach ($directFields as $key) {
             if (array_key_exists($key, $data)) {
                 $payload[$key] = $data[$key];
