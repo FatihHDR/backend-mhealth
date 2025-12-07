@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Packages extends Model
 {
@@ -14,26 +15,50 @@ class Packages extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'name',
-        'description',
-        'price',
+        'slug',
+        'en_title',
+        'id_title',
+        'en_tagline',
+        'id_tagline',
+        'highlight_image',
+        'reference_image',
         'duration_by_day',
         'duration_by_night',
-        'medical_package',
-        'entertain_package',
-        'is_medical',
-        'is_entertain',
         'spesific_gender',
-        'image',
-        'location',
+        'en_medical_package_content',
+        'id_medical_package_content',
+        'en_wellness_package_content',
+        'id_wellness_package_content',
+        'included',
+        'vendor_id',
+        'hotel_id',
+        'real_price',
+        'discount_price',
+        'status',
     ];
 
     protected $casts = [
         'reference_image' => 'array',
         'included' => 'array',
-        'real_price' => 'string',
-        'discount_price' => 'string',
+        'duration_by_day' => 'integer',
+        'duration_by_night' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * Get the vendor that owns the package.
+     */
+    public function vendor(): BelongsTo
+    {
+        return $this->belongsTo(Vendor::class);
+    }
+
+    /**
+     * Get the hotel that owns the package.
+     */
+    public function hotel(): BelongsTo
+    {
+        return $this->belongsTo(Hotel::class);
+    }
 }

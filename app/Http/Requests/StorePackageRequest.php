@@ -22,18 +22,50 @@ class StorePackageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'nullable|numeric|min:0',
+            // Title fields (required)
+            'title' => 'required_without_all:en_title,id_title|string|max:255',
+            'en_title' => 'nullable|string|max:255',
+            'id_title' => 'nullable|string|max:255',
+            
+            // Tagline fields
+            'tagline' => 'nullable|string|max:500',
+            'en_tagline' => 'nullable|string|max:500',
+            'id_tagline' => 'nullable|string|max:500',
+            
+            // Images
+            'highlight_image' => 'nullable|url',
+            'reference_image' => 'nullable|array',
+            'reference_image.*' => 'url',
+            
+            // Duration
             'duration_by_day' => 'nullable|integer|min:0',
             'duration_by_night' => 'nullable|integer|min:0',
-            'medical_package' => 'nullable|string',
-            'entertain_package' => 'nullable|string',
-            'is_medical' => 'nullable|boolean',
-            'is_entertain' => 'nullable|boolean',
+            
+            // Gender enum (both, male, female)
             'spesific_gender' => 'nullable|string|in:both,male,female',
-            'image' => 'nullable|url',
-            'location' => 'nullable|string|max:255',
+            
+            // Package content
+            'medical_content' => 'nullable|string',
+            'en_medical_package_content' => 'nullable|string',
+            'id_medical_package_content' => 'nullable|string',
+            'wellness_content' => 'nullable|string',
+            'en_wellness_package_content' => 'nullable|string',
+            'id_wellness_package_content' => 'nullable|string',
+            
+            // Included items
+            'included' => 'nullable|array',
+            'included.*' => 'string',
+            
+            // Foreign keys
+            'vendor_id' => 'required|uuid|exists:vendor,id',
+            'hotel_id' => 'required|uuid|exists:hotel,id',
+            
+            // Pricing (stored as text in DB)
+            'real_price' => 'nullable|string|max:50',
+            'discount_price' => 'nullable|string|max:50',
+            
+            // Status enum (draft, published, archived)
+            'status' => 'nullable|string|in:draft,published,archived',
         ];
     }
 
@@ -43,12 +75,17 @@ class StorePackageRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'Nama package wajib diisi',
-            'name.max' => 'Nama package maksimal 255 karakter',
-            'price.numeric' => 'Harga harus berupa angka',
-            'price.min' => 'Harga tidak boleh negatif',
-            'image.url' => 'Image harus berupa URL yang valid',
+            'title.required_without_all' => 'Title wajib diisi (title, en_title, atau id_title)',
+            'en_title.max' => 'English title maksimal 255 karakter',
+            'id_title.max' => 'Indonesian title maksimal 255 karakter',
+            'highlight_image.url' => 'Highlight image harus berupa URL yang valid',
+            'reference_image.*.url' => 'Setiap reference image harus berupa URL yang valid',
             'spesific_gender.in' => 'Gender harus salah satu dari: both, male, female',
+            'vendor_id.required' => 'Vendor ID wajib diisi',
+            'vendor_id.exists' => 'Vendor tidak ditemukan',
+            'hotel_id.required' => 'Hotel ID wajib diisi',
+            'hotel_id.exists' => 'Hotel tidak ditemukan',
+            'status.in' => 'Status harus salah satu dari: draft, published, archived',
         ];
     }
 }
