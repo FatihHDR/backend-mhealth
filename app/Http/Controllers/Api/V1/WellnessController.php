@@ -153,8 +153,7 @@ class WellnessController extends Controller
         }
 
         // Direct fields
-        $directFields = ['highlight_image', 'reference_image', 'duration_by_day', 'duration_by_night',
-                         'spesific_gender', 'included', 'hotel_id', 'real_price', 'discount_price', 'status'];
+        $directFields = ['highlight_image', 'reference_image', 'duration_by_day', 'duration_by_night', 'spesific_gender', 'included', 'hotel_id', 'real_price', 'discount_price', 'status'];
         foreach ($directFields as $key) {
             if (array_key_exists($key, $data)) {
                 $payload[$key] = $data[$key];

@@ -5,22 +5,36 @@ namespace App\Http\Controllers\Api\V1;
 use App\Helpers\SlugHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\Paginates;
+use App\Http\Requests\StoreMedicalEquipmentRequest;
+use App\Http\Requests\UpdateMedicalEquipmentRequest;
+use App\Http\Resources\MedicalEquipmentCollection;
 use App\Http\Resources\MedicalEquipmentResource;
 use App\Models\MedicalEquipment;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class MedicalEquipmentController extends Controller
 {
     use Paginates;
 
+    /**
+     * Get list of medical equipment.
+     * 
+     * GET /api/v1/medical-equipment
+     * 
+     * Query params:
+     * - per_page: number of items per page (default: 10, use 'all' for no pagination)
+     */
     public function index()
     {
         $query = MedicalEquipment::orderBy('created_at', 'desc');
         $rows = $this->paginateQuery($query);
-        return MedicalEquipmentResource::collection($rows);
+        return new MedicalEquipmentCollection($rows);
     }
 
+    /**
+     * Get a single medical equipment.
+     * 
+     * GET /api/v1/medical-equipment/{id}
+     */
     public function show($id)
     {
         $equipment = MedicalEquipment::findOrFail($id);
@@ -31,48 +45,15 @@ class MedicalEquipmentController extends Controller
      * Create a new Medical Equipment.
      * 
      * POST /api/v1/medical-equipment
-     * 
-     * Payload:
-     * {
-     *   "title": "Equipment Name",                                 // Required - will be used for both en_title and id_title
-     *   "en_title": "English Title",                               // Optional - override English title
-     *   "id_title": "Judul Indonesia",                             // Optional - override Indonesian title
-     *   "description": "Equipment description...",                 // Optional - will be used for both en/id
-     *   "en_description": "English description...",                // Optional
-     *   "id_description": "Deskripsi Indonesia...",                // Optional
-     *   "highlight_image": "https://supabase.../equipment.jpg",    // Optional - Supabase bucket URL
-     *   "reference_image": [                                       // Optional - Array of Supabase bucket URLs
-     *     "https://supabase.../img1.jpg",
-     *     "https://supabase.../img2.jpg"
-     *   ],
-     *   "spesific_gender": "all",                                  // Optional - all/male/female
-     *   "real_price": 1000000,                                     // Optional - Original price
-     *   "discount_price": 900000,                                  // Optional - Discounted price
-     *   "status": "active"                                         // Optional - active/inactive
-     * }
      */
-    public function store(Request $request)
+    public function store(StoreMedicalEquipmentRequest $request)
     {
-        $data = $request->validate([
-            'title' => 'required_without_all:en_title,id_title|string|max:255',
-            'en_title' => 'nullable|string|max:255',
-            'id_title' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'en_description' => 'nullable|string',
-            'id_description' => 'nullable|string',
-            'highlight_image' => 'nullable|url',
-            'reference_image' => 'nullable|array',
-            'reference_image.*' => 'url',
-            'spesific_gender' => 'nullable|string|in:both,male,female',
-            'real_price' => 'nullable|numeric|min:0',
-            'discount_price' => 'nullable|numeric|min:0',
-            'status' => 'nullable|string|in:draft,published,archived',
-        ]);
+        $data = $request->validated();
 
         $payload = [
             'en_title' => $data['en_title'] ?? $data['title'] ?? '',
             'id_title' => $data['id_title'] ?? $data['title'] ?? '',
-            'slug' => SlugHelper::generate($data['en_title'] ?? $data['title'] ?? Str::random(10)),
+            'slug' => SlugHelper::generate($data['en_title'] ?? $data['title'] ?? ''),
             'en_description' => $data['en_description'] ?? $data['description'] ?? null,
             'id_description' => $data['id_description'] ?? $data['description'] ?? null,
             'highlight_image' => $data['highlight_image'] ?? null,
@@ -92,31 +73,15 @@ class MedicalEquipmentController extends Controller
      * Update a Medical Equipment.
      * 
      * PUT/PATCH /api/v1/medical-equipment/{id}
-     * 
-     * Payload: Same as store, all fields optional
      */
-    public function update(Request $request, $id)
+    public function update(UpdateMedicalEquipmentRequest $request, $id)
     {
         $equipment = MedicalEquipment::findOrFail($id);
-
-        $data = $request->validate([
-            'title' => 'nullable|string|max:255',
-            'en_title' => 'nullable|string|max:255',
-            'id_title' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'en_description' => 'nullable|string',
-            'id_description' => 'nullable|string',
-            'highlight_image' => 'nullable|url',
-            'reference_image' => 'nullable|array',
-            'reference_image.*' => 'url',
-            'spesific_gender' => 'nullable|string|in:both,male,female',
-            'real_price' => 'nullable|numeric|min:0',
-            'discount_price' => 'nullable|numeric|min:0',
-            'status' => 'nullable|string|in:draft,published,archived',
-        ]);
+        $data = $request->validated();
 
         $payload = [];
 
+        // Handle title
         if (isset($data['title'])) {
             $newTitle = $data['en_title'] ?? $data['title'];
             $payload['en_title'] = $newTitle;
@@ -133,25 +98,43 @@ class MedicalEquipmentController extends Controller
                     $payload['slug'] = $newSlug;
                 }
             }
-            if (isset($data['id_title'])) $payload['id_title'] = $data['id_title'];
+            if (isset($data['id_title'])) {
+                $payload['id_title'] = $data['id_title'];
+            }
         }
 
+        // Handle description
         if (isset($data['description'])) {
             $payload['en_description'] = $data['en_description'] ?? $data['description'];
             $payload['id_description'] = $data['id_description'] ?? $data['description'];
         } else {
-            if (isset($data['en_description'])) $payload['en_description'] = $data['en_description'];
-            if (isset($data['id_description'])) $payload['id_description'] = $data['id_description'];
+            if (isset($data['en_description'])) {
+                $payload['en_description'] = $data['en_description'];
+            }
+            if (isset($data['id_description'])) {
+                $payload['id_description'] = $data['id_description'];
+            }
         }
 
-        $directFields = ['highlight_image', 'reference_image', 'spesific_gender', 'real_price', 'discount_price', 'status'];
+        // Direct fields
+        $directFields = [
+            'highlight_image', 
+            'reference_image', 
+            'spesific_gender', 
+            'real_price', 
+            'discount_price', 
+            'status'
+        ];
+        
         foreach ($directFields as $key) {
             if (array_key_exists($key, $data)) {
                 $payload[$key] = $data[$key];
             }
         }
 
-        $equipment->update($payload);
+        if (!empty($payload)) {
+            $equipment->update($payload);
+        }
 
         return new MedicalEquipmentResource($equipment->fresh());
     }
