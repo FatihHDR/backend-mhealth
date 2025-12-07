@@ -31,7 +31,7 @@ class StorePackageRequest extends FormRequest
             'entertain_package' => 'nullable|string',
             'is_medical' => 'nullable|boolean',
             'is_entertain' => 'nullable|boolean',
-            'spesific_gender' => 'nullable|string|in:all,male,female',
+            'spesific_gender' => 'nullable|string|in:both,male,female',
             'image' => 'nullable|url',
             'location' => 'nullable|string|max:255',
         ];
@@ -48,7 +48,7 @@ class StorePackageRequest extends FormRequest
             'price.numeric' => 'Harga harus berupa angka',
             'price.min' => 'Harga tidak boleh negatif',
             'image.url' => 'Image harus berupa URL yang valid',
-            'spesific_gender.in' => 'Gender harus salah satu dari: all, male, female',
+            'spesific_gender.in' => 'Gender harus salah satu dari: both, male, female',
         ];
     }
 }

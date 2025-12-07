@@ -75,13 +75,13 @@ class MedicalController extends Controller
             'reference_image.*' => 'url',
             'duration_by_day' => 'nullable|integer|min:0',
             'duration_by_night' => 'nullable|integer|min:0',
-            'spesific_gender' => 'nullable|string|in:all,male,female',
+            'spesific_gender' => 'nullable|string|in:both,male,female',
             'included' => 'nullable|array',
             'included.*' => 'string',
             'vendor_id' => 'nullable|uuid',
             'real_price' => 'nullable|numeric|min:0',
             'discount_price' => 'nullable|numeric|min:0',
-            'status' => 'nullable|string|in:active,inactive',
+            'status' => 'nullable|string|in:draft,published,archived',
         ]);
 
         $payload = [
@@ -96,12 +96,12 @@ class MedicalController extends Controller
             'reference_image' => $data['reference_image'] ?? [],
             'duration_by_day' => $data['duration_by_day'] ?? null,
             'duration_by_night' => $data['duration_by_night'] ?? null,
-            'spesific_gender' => $data['spesific_gender'] ?? 'all',
+            'spesific_gender' => $data['spesific_gender'] ?? 'both',
             'included' => $data['included'] ?? [],
             'vendor_id' => $data['vendor_id'] ?? null,
             'real_price' => $data['real_price'] ?? null,
             'discount_price' => $data['discount_price'] ?? null,
-            'status' => $data['status'] ?? 'active',
+            'status' => $data['status'] ?? 'draft',
         ];
 
         $medical = Medical::create($payload);
@@ -135,13 +135,13 @@ class MedicalController extends Controller
             'reference_image.*' => 'url',
             'duration_by_day' => 'nullable|integer|min:0',
             'duration_by_night' => 'nullable|integer|min:0',
-            'spesific_gender' => 'nullable|string|in:all,male,female',
+            'spesific_gender' => 'nullable|string|in:both,male,female',
             'included' => 'nullable|array',
             'included.*' => 'string',
             'vendor_id' => 'nullable|uuid',
             'real_price' => 'nullable|numeric|min:0',
             'discount_price' => 'nullable|numeric|min:0',
-            'status' => 'nullable|string|in:active,inactive',
+            'status' => 'nullable|string|in:draft,published,archived',
         ]);
 
         $payload = [];

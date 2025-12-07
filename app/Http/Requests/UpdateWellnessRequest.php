@@ -36,13 +36,13 @@ class UpdateWellnessRequest extends FormRequest
             'reference_image.*' => 'url',
             'duration_by_day' => 'nullable|integer|min:0',
             'duration_by_night' => 'nullable|integer|min:0',
-            'spesific_gender' => 'nullable|string|in:all,male,female',
+            'spesific_gender' => 'nullable|string|in:both,male,female',
             'included' => 'nullable|array',
             'included.*' => 'string',
             'hotel_id' => 'nullable|uuid',
             'real_price' => 'nullable|numeric|min:0',
             'discount_price' => 'nullable|numeric|min:0',
-            'status' => 'nullable|string|in:active,inactive',
+            'status' => 'nullable|string|in:draft,published,archived',
         ];
     }
 
@@ -60,8 +60,8 @@ class UpdateWellnessRequest extends FormRequest
             'hotel_id.uuid' => 'Hotel ID harus berupa UUID yang valid',
             'real_price.numeric' => 'Real price harus berupa angka',
             'discount_price.numeric' => 'Discount price harus berupa angka',
-            'spesific_gender.in' => 'Gender harus salah satu dari: all, male, female',
-            'status.in' => 'Status harus salah satu dari: active, inactive',
+            'spesific_gender.in' => 'Gender harus salah satu dari: both, male, female',
+            'status.in' => 'Status harus salah satu dari: draft, published, archived',
         ];
     }
 }

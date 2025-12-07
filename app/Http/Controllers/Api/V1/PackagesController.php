@@ -73,7 +73,7 @@ class PackagesController extends Controller
             'entertain_package' => $data['entertain_package'] ?? null,
             'is_medical' => $data['is_medical'] ?? false,
             'is_entertain' => $data['is_entertain'] ?? false,
-            'spesific_gender' => $data['spesific_gender'] ?? 'all',
+            'spesific_gender' => $data['spesific_gender'] ?? 'both',
             'image' => $data['image'] ?? null,
             'location' => $data['location'] ?? null,
         ];

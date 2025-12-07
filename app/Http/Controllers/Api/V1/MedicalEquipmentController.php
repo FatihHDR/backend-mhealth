@@ -63,10 +63,10 @@ class MedicalEquipmentController extends Controller
             'highlight_image' => 'nullable|url',
             'reference_image' => 'nullable|array',
             'reference_image.*' => 'url',
-            'spesific_gender' => 'nullable|string|in:all,male,female',
+            'spesific_gender' => 'nullable|string|in:both,male,female',
             'real_price' => 'nullable|numeric|min:0',
             'discount_price' => 'nullable|numeric|min:0',
-            'status' => 'nullable|string|in:active,inactive',
+            'status' => 'nullable|string|in:draft,published,archived',
         ]);
 
         $payload = [
@@ -77,10 +77,10 @@ class MedicalEquipmentController extends Controller
             'id_description' => $data['id_description'] ?? $data['description'] ?? null,
             'highlight_image' => $data['highlight_image'] ?? null,
             'reference_image' => $data['reference_image'] ?? [],
-            'spesific_gender' => $data['spesific_gender'] ?? 'all',
+            'spesific_gender' => $data['spesific_gender'] ?? 'both',
             'real_price' => $data['real_price'] ?? null,
             'discount_price' => $data['discount_price'] ?? null,
-            'status' => $data['status'] ?? 'active',
+            'status' => $data['status'] ?? 'draft',
         ];
 
         $equipment = MedicalEquipment::create($payload);
@@ -109,10 +109,10 @@ class MedicalEquipmentController extends Controller
             'highlight_image' => 'nullable|url',
             'reference_image' => 'nullable|array',
             'reference_image.*' => 'url',
-            'spesific_gender' => 'nullable|string|in:all,male,female',
+            'spesific_gender' => 'nullable|string|in:both,male,female',
             'real_price' => 'nullable|numeric|min:0',
             'discount_price' => 'nullable|numeric|min:0',
-            'status' => 'nullable|string|in:active,inactive',
+            'status' => 'nullable|string|in:draft,published,archived',
         ]);
 
         $payload = [];

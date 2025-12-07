@@ -68,7 +68,7 @@ class WellnessController extends Controller
      *   "hotel_id": "uuid-of-hotel",                               // Optional - Hotel UUID
      *   "real_price": 3000000,                                     // Optional - Original price
      *   "discount_price": 2500000,                                 // Optional - Discounted price
-     *   "status": "active"                                         // Optional - active/inactive
+     *   "status": "draft"                                         // Optional - draft/published/archived
      * }
      */
     public function store(StoreWellnessRequest $request)
@@ -87,12 +87,12 @@ class WellnessController extends Controller
             'reference_image' => $data['reference_image'] ?? [],
             'duration_by_day' => $data['duration_by_day'] ?? null,
             'duration_by_night' => $data['duration_by_night'] ?? null,
-            'spesific_gender' => $data['spesific_gender'] ?? 'all',
+            'spesific_gender' => $data['spesific_gender'] ?? 'both',
             'included' => $data['included'] ?? [],
             'hotel_id' => $data['hotel_id'] ?? null,
             'real_price' => $data['real_price'] ?? null,
             'discount_price' => $data['discount_price'] ?? null,
-            'status' => $data['status'] ?? 'active',
+            'status' => $data['status'] ?? 'draft',
         ];
 
         $wellness = Wellness::create($payload);
