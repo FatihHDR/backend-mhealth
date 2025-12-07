@@ -2,27 +2,48 @@
 
 namespace App\Http\Resources;
 
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class MedicalResource extends JsonResource
 {
-    public function toArray($request): array
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
     {
-        // Ensure we always return an array. The resource may be an Eloquent model,
-        // a collection, or a plain array. Normalize accordingly to satisfy
-        // the JsonResource contract which expects an array return type.
-        if ($this->resource instanceof \Illuminate\Database\Eloquent\Model) {
-            return $this->resource->toArray();
-        }
-
-        if ($this->resource instanceof \Illuminate\Support\Collection) {
-            return $this->resource->toArray();
-        }
-
-        if (is_array($this->resource)) {
-            return $this->resource;
-        }
-
-        return (array) $this->resource;
+        return [
+            'id' => $this->id,
+            'slug' => $this->slug,
+            'en_title' => $this->en_title,
+            'id_title' => $this->id_title,
+            'en_tagline' => $this->en_tagline,
+            'id_tagline' => $this->id_tagline,
+            'highlight_image' => $this->highlight_image,
+            'reference_image' => $this->reference_image,
+            'duration_by_day' => $this->duration_by_day,
+            'duration_by_night' => $this->duration_by_night,
+            'spesific_gender' => $this->spesific_gender,
+            'en_medical_package_content' => $this->en_medical_package_content,
+            'id_medical_package_content' => $this->id_medical_package_content,
+            'included' => $this->included,
+            'vendor_id' => $this->vendor_id,
+            'real_price' => $this->real_price,
+            'discount_price' => $this->discount_price,
+            'status' => $this->status,
+            'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
+            
+            // Include vendor relationship when loaded
+            'vendor' => $this->whenLoaded('vendor', function () {
+                return [
+                    'id' => $this->vendor->id,
+                    'name' => $this->vendor->name,
+                    'slug' => $this->vendor->slug,
+                ];
+            }),
+        ];
     }
 }
