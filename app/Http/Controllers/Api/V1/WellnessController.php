@@ -5,22 +5,35 @@ namespace App\Http\Controllers\Api\V1;
 use App\Helpers\SlugHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\Paginates;
+use App\Http\Requests\StoreWellnessRequest;
+use App\Http\Requests\UpdateWellnessRequest;
+use App\Http\Resources\WellnessCollection;
 use App\Http\Resources\WellnessResource;
 use App\Models\Wellness;
-use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class WellnessController extends Controller
 {
     use Paginates;
 
+    /**
+     * Display a listing of wellness packages.
+     * 
+     * GET /api/v1/wellness
+     */
     public function index()
     {
         $query = Wellness::orderBy('created_at', 'desc');
         $rows = $this->paginateQuery($query);
-        return WellnessResource::collection($rows);
+
+        return new WellnessCollection($rows);
     }
 
+    /**
+     * Display the specified wellness package.
+     * 
+     * GET /api/v1/wellness/{id}
+     */
     public function show($id)
     {
         $wellness = Wellness::findOrFail($id);
@@ -58,31 +71,9 @@ class WellnessController extends Controller
      *   "status": "active"                                         // Optional - active/inactive
      * }
      */
-    public function store(Request $request)
+    public function store(StoreWellnessRequest $request)
     {
-        $data = $request->validate([
-            'title' => 'required_without_all:en_title,id_title|string|max:255',
-            'en_title' => 'nullable|string|max:255',
-            'id_title' => 'nullable|string|max:255',
-            'tagline' => 'nullable|string|max:255',
-            'en_tagline' => 'nullable|string|max:255',
-            'id_tagline' => 'nullable|string|max:255',
-            'content' => 'nullable|string',
-            'en_wellness_package_content' => 'nullable|string',
-            'id_wellness_package_content' => 'nullable|string',
-            'highlight_image' => 'nullable|url',
-            'reference_image' => 'nullable|array',
-            'reference_image.*' => 'url',
-            'duration_by_day' => 'nullable|integer|min:0',
-            'duration_by_night' => 'nullable|integer|min:0',
-            'spesific_gender' => 'nullable|string|in:all,male,female',
-            'included' => 'nullable|array',
-            'included.*' => 'string',
-            'hotel_id' => 'nullable|uuid',
-            'real_price' => 'nullable|numeric|min:0',
-            'discount_price' => 'nullable|numeric|min:0',
-            'status' => 'nullable|string|in:active,inactive',
-        ]);
+        $data = $request->validated();
 
         $payload = [
             'en_title' => $data['en_title'] ?? $data['title'] ?? '',
@@ -116,33 +107,10 @@ class WellnessController extends Controller
      * 
      * Payload: Same as store, all fields optional
      */
-    public function update(Request $request, $id)
+    public function update(UpdateWellnessRequest $request, $id)
     {
         $wellness = Wellness::findOrFail($id);
-
-        $data = $request->validate([
-            'title' => 'nullable|string|max:255',
-            'en_title' => 'nullable|string|max:255',
-            'id_title' => 'nullable|string|max:255',
-            'tagline' => 'nullable|string|max:255',
-            'en_tagline' => 'nullable|string|max:255',
-            'id_tagline' => 'nullable|string|max:255',
-            'content' => 'nullable|string',
-            'en_wellness_package_content' => 'nullable|string',
-            'id_wellness_package_content' => 'nullable|string',
-            'highlight_image' => 'nullable|url',
-            'reference_image' => 'nullable|array',
-            'reference_image.*' => 'url',
-            'duration_by_day' => 'nullable|integer|min:0',
-            'duration_by_night' => 'nullable|integer|min:0',
-            'spesific_gender' => 'nullable|string|in:all,male,female',
-            'included' => 'nullable|array',
-            'included.*' => 'string',
-            'hotel_id' => 'nullable|uuid',
-            'real_price' => 'nullable|numeric|min:0',
-            'discount_price' => 'nullable|numeric|min:0',
-            'status' => 'nullable|string|in:active,inactive',
-        ]);
+        $data = $request->validated();
 
         $payload = [];
 

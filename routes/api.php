@@ -56,15 +56,11 @@ Route::group([
     Route::apiResource('events', EventController::class);
     Route::apiResource('payments', PaymentController::class);
     Route::apiResource('error-logs', ErrorLogController::class);
-    // Chat history import
+
     Route::post('chat-activities', [ChatHistoryController::class, 'store']);
-    // CRUD for stored chat sessions (index, show, update, destroy)
     Route::get('chat-activities', [ChatActivityController::class, 'index']);
-    // Get ALL sessions for a specific public_id
     Route::get('chat-activities/all/{public_id}', [ChatActivityController::class, 'all']);
-    // Delete ALL sessions for a specific public_id (clear all history)
     Route::delete('chat-activities/all/{public_id}', [ChatActivityController::class, 'destroyByPublicId']);
-    // Get specific message from a session (for reply feature)
     Route::get('chat-activities/{session_id}/message/{message_id}', [ChatActivityController::class, 'getMessage']);
     Route::get('chat-activities/{chat_activity}', [ChatActivityController::class, 'show']);
     Route::put('chat-activities/{chat_activity}', [ChatActivityController::class, 'update']);
