@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Helpers\SlugHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\Paginates;
+use App\Http\Resources\VendorCollection;
 use App\Http\Resources\VendorResource;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
@@ -14,11 +15,18 @@ class VendorsController extends Controller
 {
     use Paginates;
 
+    /**
+     * Display a listing of vendors.
+     * 
+     * GET /api/v1/vendors
+     * GET /api/v1/vendors?per_page=all (untuk semua data)
+     */
     public function index()
     {
         $query = Vendor::orderBy('created_at', 'desc');
         $paginator = $this->paginateQuery($query);
-        return VendorResource::collection($paginator);
+
+        return new VendorCollection($paginator);
     }
 
     public function show($id)

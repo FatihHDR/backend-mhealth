@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Helpers\SlugHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\Paginates;
+use App\Http\Resources\HotelCollection;
 use App\Http\Resources\HotelResource;
 use App\Models\Hotel;
 use Illuminate\Http\Request;
@@ -14,11 +15,18 @@ class HotelsController extends Controller
 {
     use Paginates;
 
+    /**
+     * Display a listing of hotels.
+     * 
+     * GET /api/v1/hotels
+     * GET /api/v1/hotels?per_page=all (untuk semua data)
+     */
     public function index()
     {
         $query = Hotel::orderBy('created_at', 'desc');
         $rows = $this->paginateQuery($query);
-        return HotelResource::collection($rows);
+
+        return new HotelCollection($rows);
     }
 
     public function show($id)
