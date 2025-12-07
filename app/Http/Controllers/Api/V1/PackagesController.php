@@ -12,6 +12,7 @@ use App\Http\Resources\PackageCollection;
 use App\Http\Resources\PackageResource;
 use App\Models\Packages;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class PackagesController extends Controller
 {

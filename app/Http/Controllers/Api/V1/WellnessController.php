@@ -12,6 +12,7 @@ use App\Http\Resources\WellnessCollection;
 use App\Http\Resources\WellnessResource;
 use App\Models\Wellness;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class WellnessController extends Controller
 {
