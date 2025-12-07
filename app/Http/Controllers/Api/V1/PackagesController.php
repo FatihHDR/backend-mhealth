@@ -5,26 +5,29 @@ namespace App\Http\Controllers\Api\V1;
 use App\Helpers\SlugHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\Paginates;
+use App\Http\Controllers\Concerns\Searchable;
 use App\Http\Requests\StorePackageRequest;
 use App\Http\Requests\UpdatePackageRequest;
 use App\Http\Resources\PackageCollection;
 use App\Http\Resources\PackageResource;
 use App\Models\Packages;
-use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 
 class PackagesController extends Controller
 {
-    use Paginates;
+    use Paginates, Searchable;
 
     /**
      * Display a listing of packages.
      * 
      * GET /api/v1/packages
      * GET /api/v1/packages?per_page=all (untuk semua data)
+     * GET /api/v1/packages?search=keyword (search by title)
      */
-    public function index()
+    public function index(Request $request)
     {
         $query = Packages::orderBy('created_at', 'desc');
+        $query = $this->applySearch($query, $request);
         $packages = $this->paginateQuery($query);
 
         return new PackageCollection($packages);

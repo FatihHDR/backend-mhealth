@@ -3,20 +3,27 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\Searchable;
 use App\Http\Requests\UpdateAboutUsRequest;
 use App\Http\Resources\AboutUsResource;
 use App\Models\AboutUs;
+use Illuminate\Http\Request;
 
 class AboutUsController extends Controller
 {
+    use Searchable;
+
     /**
      * Get all about us entries.
      * 
      * GET /api/v1/about-us
+     * GET /api/v1/about-us?search=keyword (search by title)
      */
-    public function index()
+    public function index(Request $request)
     {
-        $rows = AboutUs::orderBy('created_at', 'desc')->get();
+        $query = AboutUs::orderBy('created_at', 'desc');
+        $query = $this->applySearch($query, $request);
+        $rows = $query->get();
         return AboutUsResource::collection($rows);
     }
 

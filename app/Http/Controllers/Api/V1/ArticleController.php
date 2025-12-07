@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\SlugHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\Paginates;
+use App\Http\Controllers\Concerns\Searchable;
 use App\Http\Resources\ArticleResource;
 use App\Models\Article;
 use Illuminate\Http\Request;
@@ -11,12 +13,18 @@ use Illuminate\Support\Str;
 
 class ArticleController extends Controller
 {
-    use Paginates;
+    use Paginates, Searchable;
 
-    public function index()
+    /**
+     * Display a listing of articles.
+     * 
+     * GET /api/v1/articles
+     * GET /api/v1/articles?search=keyword (search by title)
+     */
+    public function index(Request $request)
     {
         $query = Article::with('author')->orderBy('created_at', 'desc');
-
+        $query = $this->applySearch($query, $request);
         $paginator = $this->paginateQuery($query);
 
         return ArticleResource::collection($paginator);

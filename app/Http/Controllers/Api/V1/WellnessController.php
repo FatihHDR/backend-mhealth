@@ -5,25 +5,28 @@ namespace App\Http\Controllers\Api\V1;
 use App\Helpers\SlugHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\Paginates;
+use App\Http\Controllers\Concerns\Searchable;
 use App\Http\Requests\StoreWellnessRequest;
 use App\Http\Requests\UpdateWellnessRequest;
 use App\Http\Resources\WellnessCollection;
 use App\Http\Resources\WellnessResource;
 use App\Models\Wellness;
-use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 
 class WellnessController extends Controller
 {
-    use Paginates;
+    use Paginates, Searchable;
 
     /**
      * Display a listing of wellness packages.
      * 
      * GET /api/v1/wellness
+     * GET /api/v1/wellness?search=keyword (search by title)
      */
-    public function index()
+    public function index(Request $request)
     {
         $query = Wellness::orderBy('created_at', 'desc');
+        $query = $this->applySearch($query, $request);
         $rows = $this->paginateQuery($query);
 
         return new WellnessCollection($rows);

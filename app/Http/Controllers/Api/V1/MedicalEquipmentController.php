@@ -5,15 +5,17 @@ namespace App\Http\Controllers\Api\V1;
 use App\Helpers\SlugHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\Paginates;
+use App\Http\Controllers\Concerns\Searchable;
 use App\Http\Requests\StoreMedicalEquipmentRequest;
 use App\Http\Requests\UpdateMedicalEquipmentRequest;
 use App\Http\Resources\MedicalEquipmentCollection;
 use App\Http\Resources\MedicalEquipmentResource;
 use App\Models\MedicalEquipment;
+use Illuminate\Http\Request;
 
 class MedicalEquipmentController extends Controller
 {
-    use Paginates;
+    use Paginates, Searchable;
 
     /**
      * Get list of medical equipment.
@@ -22,10 +24,12 @@ class MedicalEquipmentController extends Controller
      * 
      * Query params:
      * - per_page: number of items per page (default: 10, use 'all' for no pagination)
+     * - search: search by title (case-insensitive)
      */
-    public function index()
+    public function index(Request $request)
     {
         $query = MedicalEquipment::orderBy('created_at', 'desc');
+        $query = $this->applySearch($query, $request);
         $rows = $this->paginateQuery($query);
         return new MedicalEquipmentCollection($rows);
     }

@@ -5,17 +5,25 @@ namespace App\Http\Controllers\Api\V1;
 use App\Helpers\SlugHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\Paginates;
+use App\Http\Controllers\Concerns\Searchable;
 use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class EventController extends Controller
 {
-    use Paginates;
+    use Paginates, Searchable;
 
-    public function index()
+    /**
+     * Display a listing of events.
+     * 
+     * GET /api/v1/events
+     * GET /api/v1/events?search=keyword (search by title)
+     */
+    public function index(Request $request)
     {
         $query = Event::orderBy('start_date', 'desc');
+        $query = $this->applySearch($query, $request);
         $events = $this->paginateQuery($query);
 
         return response()->json($events);
