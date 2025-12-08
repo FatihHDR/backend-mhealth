@@ -30,18 +30,26 @@ class MedicalResource extends JsonResource
             'id_medical_package_content' => $this->id_medical_package_content,
             'included' => $this->included,
             'vendor_id' => $this->vendor_id,
+            'hotel_id' => $this->hotel_id,
             'real_price' => $this->real_price,
             'discount_price' => $this->discount_price,
             'status' => $this->status,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
             
-            // Include vendor relationship when loaded
+            // Include relationships when loaded
             'vendor' => $this->whenLoaded('vendor', function () {
                 return [
                     'id' => $this->vendor->id,
                     'name' => $this->vendor->name,
                     'slug' => $this->vendor->slug,
+                ];
+            }),
+            'hotel' => $this->whenLoaded('hotel', function () {
+                return [
+                    'id' => $this->hotel->id,
+                    'name' => $this->hotel->name,
+                    'slug' => $this->hotel->slug,
                 ];
             }),
         ];

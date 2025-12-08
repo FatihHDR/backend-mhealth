@@ -25,21 +25,4 @@ class PackageCollection extends ResourceCollection
             'data' => $this->collection,
         ];
     }
-
-    /**
-     * Get additional data that should be returned with the resource array.
-     *
-     * @return array<string, mixed>
-     */
-    public function with(Request $request): array
-    {
-        return [
-            'meta' => [
-                'total' => $this->total(),
-                'per_page' => $this->perPage(),
-                'current_page' => $this->currentPage(),
-                'last_page' => $this->lastPage(),
-            ],
-        ];
-    }
 }

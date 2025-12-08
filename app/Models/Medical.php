@@ -28,6 +28,7 @@ class Medical extends Model
         'id_medical_package_content',
         'included',
         'vendor_id',
+        'hotel_id',
         'real_price',
         'discount_price',
         'status',
@@ -43,5 +44,10 @@ class Medical extends Model
     public function vendor()
     {
         return $this->belongsTo(Vendor::class);
+    }
+
+    public function hotel()
+    {
+        return $this->belongsTo(Hotel::class);
     }
 }

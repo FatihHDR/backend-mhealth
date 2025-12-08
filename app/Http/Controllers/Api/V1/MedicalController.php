@@ -69,6 +69,7 @@ class MedicalController extends Controller
             'spesific_gender' => $data['spesific_gender'] ?? 'both',
             'included' => $data['included'] ?? [],
             'vendor_id' => $data['vendor_id'] ?? null,
+            'hotel_id' => $data['hotel_id'] ?? null,
             'real_price' => $data['real_price'] ?? null,
             'discount_price' => $data['discount_price'] ?? null,
             'status' => $data['status'] ?? 'draft',
@@ -147,7 +148,8 @@ class MedicalController extends Controller
             'duration_by_night',
             'spesific_gender', 
             'included', 
-            'vendor_id', 
+            'vendor_id',
+            'hotel_id', 
             'real_price', 
             'discount_price', 
             'status'

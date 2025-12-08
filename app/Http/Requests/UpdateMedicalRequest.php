@@ -53,8 +53,9 @@ class UpdateMedicalRequest extends FormRequest
             'included' => 'nullable|array',
             'included.*' => 'string',
             
-            // Foreign key
+            // Foreign keys
             'vendor_id' => 'nullable|uuid|exists:vendor,id',
+            'hotel_id' => 'nullable|uuid|exists:hotel,id',
             
             // Pricing
             'real_price' => 'nullable|numeric|min:0',

@@ -21,6 +21,8 @@ class PackageResource extends JsonResource
             'id_title' => $this->id_title,
             'en_tagline' => $this->en_tagline,
             'id_tagline' => $this->id_tagline,
+            'en_detail' => $this->en_detail,
+            'id_detail' => $this->id_detail,
             'highlight_image' => $this->highlight_image,
             'reference_image' => $this->reference_image,
             'duration_by_day' => $this->duration_by_day,

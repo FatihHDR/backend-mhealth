@@ -32,6 +32,11 @@ class StorePackageRequest extends FormRequest
             'en_tagline' => 'nullable|string|max:500',
             'id_tagline' => 'nullable|string|max:500',
             
+            // Detail fields
+            'detail' => 'nullable|string',
+            'en_detail' => 'nullable|string',
+            'id_detail' => 'nullable|string',
+            
             // Images
             'highlight_image' => 'nullable|url',
             'reference_image' => 'nullable|array',

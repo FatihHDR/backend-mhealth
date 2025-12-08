@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Packages extends Model
 {
-    use HasUuids;
+    use HasFactory, HasUuids;
 
     protected $table = 'packages';
     protected $keyType = 'string';
@@ -20,6 +21,8 @@ class Packages extends Model
         'id_title',
         'en_tagline',
         'id_tagline',
+        'en_detail',
+        'id_detail',
         'highlight_image',
         'reference_image',
         'duration_by_day',

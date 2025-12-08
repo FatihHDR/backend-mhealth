@@ -58,6 +58,9 @@ class PackagesController extends Controller
      *   "tagline": "Short tagline",                                // Optional - will be used for both en/id
      *   "en_tagline": "English tagline",                           // Optional
      *   "id_tagline": "Tagline Indonesia",                         // Optional
+     *   "detail": "Package detail description",                    // Optional - will be used for both en/id
+     *   "en_detail": "English detail description",                 // Optional - override English detail
+     *   "id_detail": "Deskripsi detail Indonesia",                 // Optional - override Indonesian detail
      *   "highlight_image": "https://supabase.../package.jpg",      // Optional - Supabase bucket URL
      *   "reference_image": ["https://...jpg", "https://...jpg"],   // Optional - Array of Supabase bucket URLs
      *   "duration_by_day": 3,                                      // Optional - Number of days
@@ -87,6 +90,8 @@ class PackagesController extends Controller
             'slug' => SlugHelper::generate($data['en_title'] ?? $data['title'] ?? Str::random(10)),
             'en_tagline' => $data['en_tagline'] ?? $data['tagline'] ?? '',
             'id_tagline' => $data['id_tagline'] ?? $data['tagline'] ?? '',
+            'en_detail' => $data['en_detail'] ?? $data['detail'] ?? null,
+            'id_detail' => $data['id_detail'] ?? $data['detail'] ?? null,
             'highlight_image' => $data['highlight_image'] ?? '',
             'reference_image' => $data['reference_image'] ?? [],
             'duration_by_day' => $data['duration_by_day'] ?? 0,
@@ -150,6 +155,15 @@ class PackagesController extends Controller
         } else {
             if (isset($data['en_tagline'])) $payload['en_tagline'] = $data['en_tagline'];
             if (isset($data['id_tagline'])) $payload['id_tagline'] = $data['id_tagline'];
+        }
+
+        // Handle detail
+        if (isset($data['detail'])) {
+            $payload['en_detail'] = $data['en_detail'] ?? $data['detail'];
+            $payload['id_detail'] = $data['id_detail'] ?? $data['detail'];
+        } else {
+            if (isset($data['en_detail'])) $payload['en_detail'] = $data['en_detail'];
+            if (isset($data['id_detail'])) $payload['id_detail'] = $data['id_detail'];
         }
 
         // Handle medical content
