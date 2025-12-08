@@ -46,6 +46,17 @@ class MedicalEquipmentController extends Controller
     }
 
     /**
+     * Display a medical equipment by slug.
+     * 
+     * GET /api/v1/medical-equipment/slug/{slug}
+     */
+    public function showBySlug($slug)
+    {
+        $equipment = MedicalEquipment::where('slug', $slug)->firstOrFail();
+        return new MedicalEquipmentResource($equipment);
+    }
+
+    /**
      * Create a new Medical Equipment.
      * 
      * POST /api/v1/medical-equipment

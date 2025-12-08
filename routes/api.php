@@ -45,15 +45,41 @@ Route::group([
     Route::post('upload-image', [UploadController::class, 'uploadImage']);
     Route::apiResource('about-us', AboutUsController::class);
     Route::apiResource('latest-packages', LatestPackagesController::class);
+    
+    // Medical with slug route
+    Route::get('medical/slug/{slug}', [MedicalController::class, 'showBySlug']);
     Route::apiResource('medical', MedicalController::class);
+    
+    // Hotels with slug route
+    Route::get('hotels/slug/{slug}', [HotelsController::class, 'showBySlug']);
     Route::apiResource('hotels', HotelsController::class);
+    
+    // Medical Equipment with slug route
+    Route::get('medical-equipment/slug/{slug}', [MedicalEquipmentController::class, 'showBySlug']);
     Route::apiResource('medical-equipment', MedicalEquipmentController::class);
+    
+    // Vendors with slug route
+    Route::get('vendors/slug/{slug}', [VendorsController::class, 'showBySlug']);
     Route::apiResource('vendors', VendorsController::class);
+    
+    // Packages with slug route
+    Route::get('packages/slug/{slug}', [PackagesController::class, 'showBySlug']);
     Route::apiResource('packages', PackagesController::class);
+    
+    // Wellness with slug route
+    Route::get('wellness/slug/{slug}', [WellnessController::class, 'showBySlug']);
     Route::apiResource('wellness', WellnessController::class);
+    
     Route::apiResource('wellness-packages', WellnessPackagesController::class);
+    
+    // Articles with slug route
+    Route::get('articles/slug/{slug}', [ArticleController::class, 'showBySlug']);
     Route::apiResource('articles', ArticleController::class);
+    
+    // Events with slug route
+    Route::get('events/slug/{slug}', [EventController::class, 'showBySlug']);
     Route::apiResource('events', EventController::class);
+    
     Route::apiResource('payments', PaymentController::class);
     Route::apiResource('error-logs', ErrorLogController::class);
 

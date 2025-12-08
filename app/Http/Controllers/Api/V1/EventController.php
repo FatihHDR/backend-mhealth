@@ -37,6 +37,17 @@ class EventController extends Controller
     }
 
     /**
+     * Display an event by slug.
+     * 
+     * GET /api/v1/events/slug/{slug}
+     */
+    public function showBySlug($slug)
+    {
+        $event = Event::where('slug', $slug)->firstOrFail();
+        return response()->json($event);
+    }
+
+    /**
      * Create a new Event.
      * 
      * POST /api/v1/events

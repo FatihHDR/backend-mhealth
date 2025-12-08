@@ -45,6 +45,17 @@ class WellnessController extends Controller
     }
 
     /**
+     * Display a wellness package by slug.
+     * 
+     * GET /api/v1/wellness/slug/{slug}
+     */
+    public function showBySlug($slug)
+    {
+        $wellness = Wellness::where('slug', $slug)->firstOrFail();
+        return new WellnessResource($wellness);
+    }
+
+    /**
      * Create a new Wellness Package.
      * 
      * POST /api/v1/wellness

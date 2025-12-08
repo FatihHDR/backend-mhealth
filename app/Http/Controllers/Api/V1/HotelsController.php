@@ -39,6 +39,17 @@ class HotelsController extends Controller
     }
 
     /**
+     * Display a hotel by slug.
+     * 
+     * GET /api/v1/hotels/slug/{slug}
+     */
+    public function showBySlug($slug)
+    {
+        $hotel = Hotel::where('slug', $slug)->firstOrFail();
+        return new HotelResource($hotel);
+    }
+
+    /**
      * Create a new Hotel.
      * 
      * POST /api/v1/hotels

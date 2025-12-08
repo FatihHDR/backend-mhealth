@@ -37,6 +37,17 @@ class ArticleController extends Controller
     }
 
     /**
+     * Display an article by slug.
+     * 
+     * GET /api/v1/articles/slug/{slug}
+     */
+    public function showBySlug($slug)
+    {
+        $article = Article::with('author')->where('slug', $slug)->firstOrFail();
+        return new ArticleResource($article);
+    }
+
+    /**
      * Create a new Article.
      * 
      * POST /api/v1/articles

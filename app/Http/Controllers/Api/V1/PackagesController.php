@@ -46,6 +46,17 @@ class PackagesController extends Controller
     }
 
     /**
+     * Display a package by slug.
+     * 
+     * GET /api/v1/packages/slug/{slug}
+     */
+    public function showBySlug($slug)
+    {
+        $package = Packages::where('slug', $slug)->firstOrFail();
+        return new PackageResource($package);
+    }
+
+    /**
      * Create a new Package.
      * 
      * POST /api/v1/packages

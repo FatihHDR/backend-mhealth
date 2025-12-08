@@ -46,6 +46,17 @@ class MedicalController extends Controller
     }
 
     /**
+     * Display a medical package by slug.
+     * 
+     * GET /api/v1/medical/slug/{slug}
+     */
+    public function showBySlug($slug)
+    {
+        $row = Medical::with('vendor')->where('slug', $slug)->firstOrFail();
+        return new MedicalResource($row);
+    }
+
+    /**
      * Create a new Medical Package.
      * 
      * POST /api/v1/medical

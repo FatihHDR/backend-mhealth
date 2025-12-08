@@ -39,6 +39,17 @@ class VendorsController extends Controller
     }
 
     /**
+     * Display a vendor by slug.
+     * 
+     * GET /api/v1/vendors/slug/{slug}
+     */
+    public function showBySlug($slug)
+    {
+        $vendor = Vendor::where('slug', $slug)->firstOrFail();
+        return new VendorResource($vendor);
+    }
+
+    /**
      * Create a new Vendor.
      * 
      * POST /api/v1/vendors
