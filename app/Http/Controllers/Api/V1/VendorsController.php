@@ -32,9 +32,22 @@ class VendorsController extends Controller
         return new VendorCollection($paginator);
     }
 
+    /**
+     * Display a vendor.
+     * 
+     * GET /api/v1/vendors/{id}      - by UUID
+     * GET /api/v1/vendors/{slug}    - by slug
+     */
     public function show($id)
     {
-        $vendor = Vendor::findOrFail($id);
+        // Auto-detect: UUID format or slug
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id) ||
+            preg_match('/^[0-9a-f]{32}$/i', $id) ||
+            preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', str_replace('-', '', $id))) {
+            $vendor = Vendor::findOrFail($id);
+        } else {
+            $vendor = Vendor::where('slug', $id)->firstOrFail();
+        }
         return new VendorResource($vendor);
     }
 

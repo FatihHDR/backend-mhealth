@@ -29,10 +29,22 @@ class EventController extends Controller
         return response()->json($events);
     }
 
+    /**
+     * Display an event.
+     * 
+     * GET /api/v1/events/{id}      - by UUID
+     * GET /api/v1/events/{slug}    - by slug
+     */
     public function show($id)
     {
-        $event = Event::findOrFail($id);
-
+        // Auto-detect: UUID format or slug
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id) ||
+            preg_match('/^[0-9a-f]{32}$/i', $id) ||
+            preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', str_replace('-', '', $id))) {
+            $event = Event::findOrFail($id);
+        } else {
+            $event = Event::where('slug', $id)->firstOrFail();
+        }
         return response()->json($event);
     }
 

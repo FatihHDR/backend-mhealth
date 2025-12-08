@@ -36,11 +36,19 @@ class WellnessController extends Controller
     /**
      * Display the specified wellness package.
      * 
-     * GET /api/v1/wellness/{id}
+     * GET /api/v1/wellness/{id}      - by UUID
+     * GET /api/v1/wellness/{slug}    - by slug
      */
     public function show($id)
     {
-        $wellness = Wellness::findOrFail($id);
+        // Auto-detect: UUID format or slug
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id) ||
+            preg_match('/^[0-9a-f]{32}$/i', $id) ||
+            preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', str_replace('-', '', $id))) {
+            $wellness = Wellness::findOrFail($id);
+        } else {
+            $wellness = Wellness::where('slug', $id)->firstOrFail();
+        }
         return new WellnessResource($wellness);
     }
 

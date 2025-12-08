@@ -32,9 +32,22 @@ class HotelsController extends Controller
         return new HotelCollection($rows);
     }
 
+    /**
+     * Display a hotel.
+     * 
+     * GET /api/v1/hotels/{id}      - by UUID
+     * GET /api/v1/hotels/{slug}    - by slug
+     */
     public function show($id)
     {
-        $hotel = Hotel::findOrFail($id);
+        // Auto-detect: UUID format or slug
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id) ||
+            preg_match('/^[0-9a-f]{32}$/i', $id) ||
+            preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', str_replace('-', '', $id))) {
+            $hotel = Hotel::findOrFail($id);
+        } else {
+            $hotel = Hotel::where('slug', $id)->firstOrFail();
+        }
         return new HotelResource($hotel);
     }
 

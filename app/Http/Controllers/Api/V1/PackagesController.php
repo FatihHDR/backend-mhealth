@@ -37,11 +37,19 @@ class PackagesController extends Controller
     /**
      * Display the specified package.
      * 
-     * GET /api/v1/packages/{id}
+     * GET /api/v1/packages/{id}      - by UUID
+     * GET /api/v1/packages/{slug}    - by slug
      */
     public function show($id)
     {
-        $package = Packages::findOrFail($id);
+        // Auto-detect: UUID format or slug
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id) ||
+            preg_match('/^[0-9a-f]{32}$/i', $id) ||
+            preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', str_replace('-', '', $id))) {
+            $package = Packages::findOrFail($id);
+        } else {
+            $package = Packages::where('slug', $id)->firstOrFail();
+        }
         return new PackageResource($package);
     }
 
