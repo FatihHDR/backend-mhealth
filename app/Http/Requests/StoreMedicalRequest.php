@@ -56,9 +56,9 @@ class StoreMedicalRequest extends FormRequest
             // Foreign key
             'vendor_id' => 'nullable|uuid|exists:vendor,id',
             
-            // Pricing (text fields in DB)
-            'real_price' => 'nullable|string|max:100',
-            'discount_price' => 'nullable|string|max:100',
+            // Pricing
+            'real_price' => 'nullable|numeric|min:0',
+            'discount_price' => 'nullable|numeric|min:0',
             
             // Status enum
             'status' => 'nullable|string|in:draft,published,archived',
