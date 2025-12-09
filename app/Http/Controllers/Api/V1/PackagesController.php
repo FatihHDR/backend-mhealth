@@ -94,8 +94,8 @@ class PackagesController extends Controller
      *   "included": ["spa", "yoga", "meditation"],                 // Optional - Array of included items
      *   "vendor_id": "uuid-of-vendor",                             // Required - Vendor UUID
      *   "hotel_id": "uuid-of-hotel",                               // Required - Hotel UUID
-     *   "real_price": "3000000",                                   // Optional - Original price (text)
-     *   "discount_price": "2500000",                               // Optional - Discounted price (text)
+     *   "real_price": 3000000,                                     // Optional - Original price (number)
+     *   "discount_price": 2500000,                                 // Optional - Discounted price (number)
      *   "status": "draft"                                          // Optional - draft/published/archived
      * }
      */

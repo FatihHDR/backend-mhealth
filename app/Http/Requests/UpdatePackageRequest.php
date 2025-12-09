@@ -65,9 +65,9 @@ class UpdatePackageRequest extends FormRequest
             'vendor_id' => 'nullable|uuid|exists:vendor,id',
             'hotel_id' => 'nullable|uuid|exists:hotel,id',
             
-            // Pricing (stored as text in DB)
-            'real_price' => 'nullable|string|max:50',
-            'discount_price' => 'nullable|string|max:50',
+            // Pricing
+            'real_price' => 'nullable|numeric|min:0',
+            'discount_price' => 'nullable|numeric|min:0',
             
             // Status enum (draft, published, archived)
             'status' => 'nullable|string|in:draft,published,archived',

@@ -65,9 +65,9 @@ class StorePackageRequest extends FormRequest
             'vendor_id' => 'required|uuid|exists:vendor,id',
             'hotel_id' => 'required|uuid|exists:hotel,id',
             
-            // Pricing (stored as text in DB)
-            'real_price' => 'nullable|string|max:50',
-            'discount_price' => 'nullable|string|max:50',
+            // Pricing
+            'real_price' => 'nullable|numeric|min:0',
+            'discount_price' => 'nullable|numeric|min:0',
             
             // Status enum (draft, published, archived)
             'status' => 'nullable|string|in:draft,published,archived',
