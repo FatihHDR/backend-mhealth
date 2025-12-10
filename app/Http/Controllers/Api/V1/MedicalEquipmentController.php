@@ -37,11 +37,17 @@ class MedicalEquipmentController extends Controller
     /**
      * Get a single medical equipment.
      * 
-     * GET /api/v1/medical-equipment/{id}
+     * GET /api/v1/medical-equipment/{id}      - by UUID
+     * GET /api/v1/medical-equipment/{slug}    - by slug
      */
     public function show($id)
     {
-        $equipment = MedicalEquipment::findOrFail($id);
+        // Auto-detect: UUID format or slug
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id)) {
+            $equipment = MedicalEquipment::findOrFail($id);
+        } else {
+            $equipment = MedicalEquipment::where('slug', $id)->firstOrFail();
+        }
         return new MedicalEquipmentResource($equipment);
     }
 
