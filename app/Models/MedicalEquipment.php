@@ -22,6 +22,7 @@ class MedicalEquipment extends Model
         'spesific_gender',
         'highlight_image',
         'reference_image',
+        'vendor_id',
         'real_price',
         'discount_price',
         'status',
@@ -32,4 +33,12 @@ class MedicalEquipment extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * Get the vendor that owns the medical equipment.
+     */
+    public function vendor(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Vendor::class);
+    }
 }

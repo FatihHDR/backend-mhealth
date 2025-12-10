@@ -18,6 +18,8 @@ class MedicalEquipmentResource extends JsonResource
             'spesific_gender' => $this->spesific_gender,
             'highlight_image' => $this->highlight_image,
             'reference_image' => $this->reference_image,
+            'vendor_id' => $this->vendor_id,
+            'vendor' => $this->whenLoaded('vendor'),
             'real_price' => $this->real_price,
             'discount_price' => $this->discount_price,
             'status' => $this->status,

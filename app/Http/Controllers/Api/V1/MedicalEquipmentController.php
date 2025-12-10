@@ -80,6 +80,7 @@ class MedicalEquipmentController extends Controller
             'highlight_image' => $data['highlight_image'] ?? null,
             'reference_image' => $data['reference_image'] ?? [],
             'spesific_gender' => $data['spesific_gender'] ?? 'both',
+            'vendor_id' => $data['vendor_id'] ?? null,
             'real_price' => $data['real_price'] ?? null,
             'discount_price' => $data['discount_price'] ?? null,
             'status' => $data['status'] ?? 'draft',
@@ -142,6 +143,7 @@ class MedicalEquipmentController extends Controller
             'highlight_image', 
             'reference_image', 
             'spesific_gender', 
+            'vendor_id',
             'real_price', 
             'discount_price', 
             'status'

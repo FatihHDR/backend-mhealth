@@ -40,6 +40,9 @@ class StoreMedicalEquipmentRequest extends FormRequest
             // Gender enum (both, male, female)
             'spesific_gender' => 'nullable|string|in:both,male,female',
             
+            // Foreign key
+            'vendor_id' => 'nullable|uuid|exists:vendor,id',
+            
             // Pricing (text fields in DB)
             'real_price' => 'nullable|string|max:100',
             'discount_price' => 'nullable|string|max:100',
