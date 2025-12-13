@@ -43,12 +43,13 @@ class GeminiController extends Controller
                 
                 // Simplified prompt for better results
                 $titlePrompt = <<<PROMPT
-                Generate a short title (3-6 words) summarizing this conversation topic.
+                Generate a descriptive title (2-6 words) summarizing this health conversation.
 
-                Rules:
+                Important rules:
                 - Use the SAME language as the user's message
-                - NO quotation marks
-                - NO punctuation at end
+                - Create a meaningful phrase, NOT just one word
+                - Focus on the main health complaint or topic
+                - NO quotation marks, NO punctuation at end
                 - Output ONLY the title
 
                 User: {$userMessage}
@@ -79,10 +80,15 @@ class GeminiController extends Controller
                 $title = preg_replace('/^(Title:|Judul:|Judul singkat:|Başlık:)\s*/i', '', $title);
                 $title = trim($title, " \t\n\r\0\x0B\"'.:"); // Remove trailing punctuation too
                 
-                // Validate title quality
-                if (empty($title) || mb_strlen($title) < 3) {
-                    Log::warning('Title too short or empty, retrying', [
+                // Count words in title
+                $wordCount = str_word_count($title, 0, 'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ');
+                
+                // Validate title quality: must be 2-8 words, minimum 5 characters
+                if (empty($title) || mb_strlen($title) < 5 || $wordCount < 2 || $wordCount > 8) {
+                    Log::warning('Title invalid (too short/too few words/too many words), retrying', [
                         'title' => $title,
+                        'word_count' => $wordCount,
+                        'char_length' => mb_strlen($title),
                         'attempt' => $attempt,
                     ]);
                     
@@ -154,17 +160,13 @@ class GeminiController extends Controller
      */
     public function generateFallbackTitle(string $userMessage): string
     {
-        // Remove common greeting words
         $cleanMessage = preg_replace('/^(hello|hi|halo|hai|hey|good morning|good afternoon|selamat pagi|selamat siang|ola)[,!\s]*/i', '', $userMessage);
         $cleanMessage = trim($cleanMessage);
         
-        // If cleaned message is too short, just use it
         if (mb_strlen($cleanMessage) <= 50) {
             return $cleanMessage;
         }
         
-        // Try to extract meaningful topic (first sentence or up to 50 chars)
-        // Look for sentence end or comma
         $sentences = preg_split('/[.!?]/', $cleanMessage, 2);
         $firstSentence = trim($sentences[0]);
         
@@ -172,7 +174,6 @@ class GeminiController extends Controller
             return $firstSentence;
         }
         
-        // Cut at word boundary near 50 chars
         if (mb_strlen($cleanMessage) > 50) {
             $truncated = mb_substr($cleanMessage, 0, 50);
             $lastSpace = mb_strrpos($truncated, ' ');
@@ -224,8 +225,9 @@ class GeminiController extends Controller
             'messages.*.message' => ['required_with:messages', 'string'],
             'session_id' => ['sometimes', 'string', 'nullable'],
             'public_id' => ['sometimes', 'string', 'nullable'],
+            'user_id' => ['sometimes', 'string', 'nullable'], // From Supabase auth
             'new_session' => ['sometimes', 'boolean'],
-            'reply_to' => ['sometimes', 'nullable'], // Bisa string (ID) atau object (message data)
+            'reply_to' => ['sometimes', 'nullable'],
         ]);
 
         $messageCount = 0;
@@ -264,7 +266,8 @@ class GeminiController extends Controller
         $currentMessageCount = $messageCount;
 
         try {
-            $userId = $request->attributes->get('supabase_user_id') ?? null;
+            // Get user_id from request body first (from frontend), then from middleware
+            $userId = $validated['user_id'] ?? $request->attributes->get('supabase_user_id') ?? null;
 
             $tsUser = (int) (microtime(true) * 1000);
             $tsBot = $tsUser + 10;
