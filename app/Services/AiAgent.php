@@ -10,9 +10,20 @@ class AiAgent
 
     /** @var string[] */
     private array $emergencyKeywords = [
-        'emergency', 'darurat', 'chest pain', 'severe bleeding', 'bleeding', 'unconscious', 'pingsan',
-        'kejang', 'shortness of breath', 'suffocat', 'suffocating', 'suicide', 'bunuh diri', 'mati',
-        'stopped breathing', 'not breathing', 'no pulse', 'cardiac arrest',
+        'emergency', 'darurat', 'chest pain', 'nyeri dada', 'severe bleeding', 'pendarahan hebat',
+        'bleeding heavily', 'unconscious', 'pingsan', 'tidak sadarkan diri',
+        'kejang', 'seizure', 'shortness of breath', 'sesak napas', 'suffocat', 'suffocating',
+        'suicide', 'bunuh diri', 'ingin mati', 'stopped breathing', 'not breathing',
+        'no pulse', 'cardiac arrest', 'serangan jantung', 'heart attack',
+        'stroke', 'paralyzed', 'lumpuh', 'severe pain', 'sakit parah',
+        'can\'t breathe', 'tidak bisa bernapas', 'overdose',
+    ];
+
+    /** @var string[] */
+    private array $greetingKeywords = [
+        'hello', 'hi', 'hey', 'halo', 'hai', 'ola', 'good morning', 'good afternoon',
+        'good evening', 'selamat pagi', 'selamat siang', 'selamat sore', 'selamat malam',
+        'apa kabar', 'how are you', 'test', 'testing',
     ];
 
     public function __construct(GeminiClient $client)
@@ -29,8 +40,9 @@ class AiAgent
     {
         $systemInstruction = 'You are Mei, a gentle, empathetic, and informative virtual health assistant. '.
             'Speak naturally, politely, and with a warm feminine tone as a caring female health assistant. '.
-            "When the user's message suggests an emergency, immediately advise them to call {$this->emergencyNumber} ".
-            "and include the word 'consultation' at the end of your message to prompt for a professional follow-up.";
+            "When the user's message suggests a REAL medical emergency (severe symptoms like chest pain, difficulty breathing, severe bleeding, unconsciousness), ".
+            "immediately advise them to call {$this->emergencyNumber} and include the word 'consultation' at the end. ".
+            "For simple greetings or non-urgent health questions, respond warmly without marking as urgent.";
 
         $fullPrompt = $systemInstruction."\n\nUser: ".$prompt;
 
@@ -38,10 +50,16 @@ class AiAgent
 
         $replyText = $this->extractTextFromResponse($response);
 
-        $urgent = $this->detectEmergency($prompt.' '.$replyText);
+        // Only detect emergency from USER prompt, not from AI reply
+        $urgent = $this->detectEmergency($prompt);
 
         if ($urgent && stripos($replyText, 'consultation') === false) {
-            $replyText = trim($replyText)."\n\nconsultation";
+            $language = $this->detectLanguage($prompt);
+            $emergencyMessage = $language === 'id' 
+                ? "Jika ini darurat, segera hubungi {$this->emergencyNumber}."
+                : "If this is an emergency, please call {$this->emergencyNumber} immediately.";
+            
+            $replyText = trim($replyText)."\n\n{$emergencyMessage}\n\nconsultation";
         }
 
         return [
@@ -53,7 +71,22 @@ class AiAgent
 
     private function detectEmergency(string $text): bool
     {
-        $hay = strtolower($text);
+        $hay = strtolower(trim($text));
+        
+        // Skip if it's just a greeting
+        foreach ($this->greetingKeywords as $greeting) {
+            if ($hay === strtolower($greeting) || 
+                preg_match('/^' . preg_quote(strtolower($greeting), '/') . '[!?\s]*$/i', $hay)) {
+                return false;
+            }
+        }
+        
+        // Skip if message is too short (likely not an emergency)
+        if (strlen($hay) < 10) {
+            return false;
+        }
+        
+        // Check for emergency keywords
         foreach ($this->emergencyKeywords as $kw) {
             if (strpos($hay, strtolower($kw)) !== false) {
                 return true;
@@ -61,6 +94,31 @@ class AiAgent
         }
 
         return false;
+    }
+
+    /**
+     * Simple language detection based on common Indonesian words.
+     * Returns 'id' for Indonesian, 'en' for English.
+     */
+    private function detectLanguage(string $text): string
+    {
+        $hay = strtolower($text);
+        
+        $indonesianIndicators = [
+            'saya', 'aku', 'kamu', 'anda', 'yang', 'dan', 'dengan', 'untuk', 
+            'dari', 'ini', 'itu', 'ada', 'tidak', 'ya', 'sudah', 'akan',
+            'bagaimana', 'apa', 'kenapa', 'dimana', 'kapan', 'siapa',
+        ];
+        
+        $indonesianCount = 0;
+        foreach ($indonesianIndicators as $word) {
+            if (preg_match('/\b' . preg_quote($word, '/') . '\b/', $hay)) {
+                $indonesianCount++;
+            }
+        }
+        
+        // If found 2 or more Indonesian indicators, it's likely Indonesian
+        return $indonesianCount >= 2 ? 'id' : 'en';
     }
 
     /**
