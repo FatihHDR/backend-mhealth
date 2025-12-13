@@ -32,12 +32,14 @@ class ChatActivityController extends Controller
     }
 
     /**
-     * Get ALL chat sessions for a specific public_id (no pagination).
-     * Endpoint: GET /chat-activities/all/{public_id}
+     * Get ALL chat sessions for a specific public_id or user_id (no pagination).
+     * Endpoint: GET /chat-activities/all/{id}
+     * Parameter {id} can be either public_id or user_id
      */
-    public function all(string $public_id)
+    public function all(string $id)
     {
-        $sessions = ChatActivity::where('public_id', $public_id)
+        $sessions = ChatActivity::where('public_id', $id)
+            ->orWhere('user_id', $id)
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -141,28 +143,33 @@ class ChatActivityController extends Controller
     }
 
     /**
-     * Remove ALL sessions for a specific public_id.
-     * Endpoint: DELETE /chat-activities/all/{public_id}
+     * Remove ALL sessions for a specific public_id or user_id.
+     * Endpoint: DELETE /chat-activities/all/{id}
+     * Parameter {id} can be either public_id or user_id
      */
-    public function destroyByPublicId(string $public_id)
+    public function destroyByPublicId(string $id)
     {
         try {
-            $count = ChatActivity::where('public_id', $public_id)->count();
+            $count = ChatActivity::where('public_id', $id)
+                ->orWhere('user_id', $id)
+                ->count();
 
             if ($count === 0) {
-                return response()->json(['message' => 'No sessions found for this public_id'], 404);
+                return response()->json(['message' => 'No sessions found for this id'], 404);
             }
 
-            ChatActivity::where('public_id', $public_id)->delete();
+            ChatActivity::where('public_id', $id)
+                ->orWhere('user_id', $id)
+                ->delete();
 
             return response()->json([
                 'message' => 'All sessions deleted',
                 'deleted_count' => $count,
             ], 200);
         } catch (\Throwable $e) {
-            Log::error('Failed to delete sessions by public_id', [
+            Log::error('Failed to delete sessions by id', [
                 'error' => $e->getMessage(),
-                'public_id' => $public_id,
+                'id' => $id,
             ]);
             return response()->json(['message' => 'Delete failed'], 500);
         }

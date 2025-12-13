@@ -469,6 +469,7 @@ class GeminiController extends Controller
                     'id' => $sessionId,
                     'title' => $sessionData['title'] ?? substr($validated['prompt'], 0, 200),
                     'messages' => $existingMessages,
+                    'urgent' => $urgent, // Track emergency status
                     'updatedAt' => now()->toIso8601String(),
                 ];
 
@@ -505,6 +506,7 @@ class GeminiController extends Controller
                             'replyTo' => null, // Bot tidak pernah reply ke message tertentu
                         ],
                     ],
+                    'urgent' => $urgent, // Track emergency status
                     'updatedAt' => now()->toIso8601String(),
                 ];
             }
