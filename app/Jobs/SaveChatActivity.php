@@ -35,6 +35,15 @@ class SaveChatActivity implements ShouldQueue
     public function handle(): void
     {
         try {
+            // Log session data untuk debugging replyTo
+            Log::debug('SaveChatActivity job started', [
+                'session_id' => $this->session['id'] ?? null,
+                'message_count' => count($this->session['messages'] ?? []),
+                'last_message_replyTo' => isset($this->session['messages']) && count($this->session['messages']) >= 2
+                    ? $this->session['messages'][count($this->session['messages']) - 2]['replyTo'] ?? null
+                    : null,
+            ]);
+
             // Determine target session to update or create
             $target = null;
 

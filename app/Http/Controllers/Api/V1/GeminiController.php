@@ -73,12 +73,21 @@ class GeminiController extends Controller
 
                 $title = $this->extractTextFromResponse($response);
                 
-                Log::debug('Generated title raw', ['raw_title' => $title, 'attempt' => $attempt]);
+                Log::debug('Generated title raw', [
+                    'raw_title' => $title,
+                    'attempt' => $attempt,
+                    'response_structure' => json_encode($response),
+                ]);
                 
                 // Clean up the title
                 $title = trim($title, " \t\n\r\0\x0B\"'");
                 $title = preg_replace('/^(Title:|Judul:|Judul singkat:|Başlık:)\s*/i', '', $title);
                 $title = trim($title, " \t\n\r\0\x0B\"'.:"); // Remove trailing punctuation too
+                
+                Log::debug('Title after cleanup', [
+                    'cleaned_title' => $title,
+                    'length' => mb_strlen($title),
+                ]);
                 
                 // Count words in title
                 $wordCount = str_word_count($title, 0, 'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ');
@@ -163,6 +172,11 @@ class GeminiController extends Controller
         $cleanMessage = preg_replace('/^(hello|hi|halo|hai|hey|good morning|good afternoon|selamat pagi|selamat siang|ola)[,!\s]*/i', '', $userMessage);
         $cleanMessage = trim($cleanMessage);
         
+        // Safety check: if message is empty after cleaning, return default
+        if (empty($cleanMessage) || mb_strlen($cleanMessage) < 2) {
+            return 'New Conversation';
+        }
+        
         if (mb_strlen($cleanMessage) <= 50) {
             return $cleanMessage;
         }
@@ -227,7 +241,7 @@ class GeminiController extends Controller
             'public_id' => ['sometimes', 'string', 'nullable'],
             'user_id' => ['sometimes', 'string', 'nullable'], // From Supabase auth
             'new_session' => ['sometimes', 'boolean'],
-            'reply_to' => ['sometimes', 'nullable'],
+            'replyTo' => ['sometimes', 'nullable'], // Accept camelCase from frontend
         ]);
 
         $messageCount = 0;
@@ -275,7 +289,7 @@ class GeminiController extends Controller
             $incomingSessionId = $validated['session_id'] ?? null;
             $incomingPublicId = $validated['public_id'] ?? null;
             $forceNewSession = $validated['new_session'] ?? false;
-            $replyToData = $validated['reply_to'] ?? null; // Bisa ID string atau message object
+            $replyToData = $validated['replyTo'] ?? null; // Bisa ID string atau message object
             $existingSession = null;
 
             Log::debug('GeminiController session lookup', [
@@ -331,9 +345,9 @@ class GeminiController extends Controller
             }
 
             // Add context about replied message if present
-            $replyToData = $validated['reply_to'] ?? null;
+            $replyToData = $validated['replyTo'] ?? null;
             if ($replyToData) {
-                // If reply_to is an object/array, use it directly
+                // If replyTo is an object/array, use it directly
                 if (is_array($replyToData)) {
                     $repliedMsg = $replyToData['message'] ?? '';
                     if (!empty($repliedMsg)) {
@@ -424,6 +438,13 @@ class GeminiController extends Controller
                     }
                 }
 
+                // Log replyTo untuk debugging
+                Log::debug('Adding message with replyTo', [
+                    'reply_to_raw' => $replyToData,
+                    'replied_message' => $repliedMessage,
+                    'has_reply' => !is_null($repliedMessage),
+                ]);
+
                 $existingMessages[] = [
                     'id' => (string) $tsUser,
                     'message' => $validated['prompt'],
@@ -432,12 +453,13 @@ class GeminiController extends Controller
                     'replyTo' => $repliedMessage, // Null jika tidak reply
                 ];
 
+                // Bot reply doesn't have replyTo (bot never replies to specific messages)
                 $existingMessages[] = [
                     'id' => (string) $tsBot,
                     'message' => $replyText,
                     'sender' => 'bot',
                     'timestamp' => now()->toIso8601String(),
-                    'replyTo' => null,
+                    'replyTo' => null, // Bot tidak pernah reply ke message tertentu
                 ];
 
                 $publicId = $existingSession->public_id;
@@ -457,6 +479,12 @@ class GeminiController extends Controller
                 // Generate AI-powered title for new sessions
                 // This mimics how ChatGPT/Gemini generates conversation titles
                 $generatedTitle = $this->generateChatTitle($client, $validated['prompt'], $replyText);
+                
+                // Final safety check: ensure title is never empty
+                if (empty($generatedTitle) || trim($generatedTitle) === '') {
+                    Log::error('Generated title is empty, using fallback');
+                    $generatedTitle = $this->generateFallbackTitle($validated['prompt']);
+                }
 
                 $session = [
                     'id' => $sessionId,
@@ -467,14 +495,14 @@ class GeminiController extends Controller
                             'message' => $validated['prompt'],
                             'sender' => 'user',
                             'timestamp' => now()->toIso8601String(),
-                            'replyTo' => null, // First message tidak ada reply
+                            'replyTo' => null, // First message tidak pernah reply
                         ],
                         [
                             'id' => (string) $tsBot,
                             'message' => $replyText,
                             'sender' => 'bot',
                             'timestamp' => now()->toIso8601String(),
-                            'replyTo' => null,
+                            'replyTo' => null, // Bot tidak pernah reply ke message tertentu
                         ],
                     ],
                     'updatedAt' => now()->toIso8601String(),
