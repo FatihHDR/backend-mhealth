@@ -42,14 +42,18 @@ class ChatHistoryController extends Controller
                 // If anonymous, ensure a UUID public_id exists (keep incoming uuid if valid, otherwise generate new one).
                 $publicId = null;
                 if (empty($userId)) {
-                    if (!empty($session['id']) && Uuid::isValid((string) $session['id'])) {
-                        $publicId = (string) $session['id'];
+                    // Generate or validate public_id
+                    $incomingPublicId = $session['public_id'] ?? null;
+                    if (!empty($incomingPublicId) && Uuid::isValid((string) $incomingPublicId)) {
+                        $publicId = (string) $incomingPublicId;
                     } else {
                         $publicId = (string) Str::uuid();
                     }
 
-                    // keep session id consistent for client reference
-                    $session['id'] = $publicId;
+                    // Ensure session id is also a valid UUID
+                    if (empty($session['id']) || !Uuid::isValid((string) $session['id'])) {
+                        $session['id'] = (string) Str::uuid();
+                    }
                 }
 
                 // Dispatch save after response so this endpoint responds quickly

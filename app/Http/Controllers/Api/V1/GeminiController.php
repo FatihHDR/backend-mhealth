@@ -27,56 +27,191 @@ class GeminiController extends Controller
     /**
      * Generate a short, descriptive title for a chat session based on the first message and reply.
      * This mimics how ChatGPT/Gemini generates conversation titles.
+     * Uses retry mechanism to ensure AI-generated title.
      */
     private function generateChatTitle(GeminiClient $client, string $userMessage, string $botReply): string
     {
-        try {
-            // Prompt khusus untuk generate judul singkat
-            $titlePrompt = <<<PROMPT
-Buatkan judul singkat (maksimal 5-7 kata) untuk percakapan berikut. Judul harus merangkum topik utama percakapan.
+        $maxRetries = 2;
+        $attempt = 0;
+        
+        while ($attempt <= $maxRetries) {
+            try {
+                $attempt++;
+                
+                // Detect language from user message
+                $language = $this->detectLanguageForTitle($userMessage);
+                
+                // Simplified prompt for better results
+                $titlePrompt = <<<PROMPT
+                Generate a short title (3-6 words) summarizing this conversation topic.
 
-Aturan:
-- Gunakan bahasa yang sama dengan pesan user
-- Jangan gunakan tanda kutip
-- Jangan gunakan tanda baca di akhir
-- Langsung tulis judulnya saja, tanpa kata "Judul:" atau penjelasan lain
+                Rules:
+                - Use the SAME language as the user's message
+                - NO quotation marks
+                - NO punctuation at end
+                - Output ONLY the title
 
-Percakapan:
-User: {$userMessage}
-Assistant: {$botReply}
+                User: {$userMessage}
+                Assistant: {$botReply}
 
-Judul singkat:
-PROMPT;
+                Title:
+                PROMPT;
 
-            Log::debug('Generating chat title', ['user_message' => mb_substr($userMessage, 0, 100)]);
+                Log::debug('Generating chat title', [
+                    'attempt' => $attempt,
+                    'user_message' => mb_substr($userMessage, 0, 100),
+                    'language' => $language,
+                ]);
 
-            $response = $client->generateText($titlePrompt, [
-                'temperature' => 0.3,
-                'maxOutputTokens' => 50,
-            ]);
+                $response = $client->generateText($titlePrompt, [
+                    'generationConfig' => [
+                        'temperature' => 0.5,
+                        'maxOutputTokens' => 30,
+                    ],
+                ]);
 
-            $title = $this->extractTextFromResponse($response);
-            
-            Log::debug('Generated title raw', ['raw_title' => $title]);
-            
-            // Clean up the title
-            $title = trim($title, " \t\n\r\0\x0B\"'");
-            $title = preg_replace('/^(Title:|Judul:|Judul singkat:)\s*/i', '', $title);
-            $title = trim($title, " \t\n\r\0\x0B\"'.:"); // Remove trailing punctuation too
-            
-            // Limit length and fallback if empty
-            if (empty($title) || mb_strlen($title) > 100) {
-                Log::warning('Title generation fallback - empty or too long', ['title_length' => mb_strlen($title)]);
-                return mb_substr($userMessage, 0, 50) . (mb_strlen($userMessage) > 50 ? '...' : '');
+                $title = $this->extractTextFromResponse($response);
+                
+                Log::debug('Generated title raw', ['raw_title' => $title, 'attempt' => $attempt]);
+                
+                // Clean up the title
+                $title = trim($title, " \t\n\r\0\x0B\"'");
+                $title = preg_replace('/^(Title:|Judul:|Judul singkat:|Başlık:)\s*/i', '', $title);
+                $title = trim($title, " \t\n\r\0\x0B\"'.:"); // Remove trailing punctuation too
+                
+                // Validate title quality
+                if (empty($title) || mb_strlen($title) < 3) {
+                    Log::warning('Title too short or empty, retrying', [
+                        'title' => $title,
+                        'attempt' => $attempt,
+                    ]);
+                    
+                    if ($attempt <= $maxRetries) {
+                        sleep(1); // Brief pause before retry
+                        continue; // Retry
+                    }
+                }
+                
+                // Filter out invalid titles (technical strings)
+                $invalidPatterns = ['gemini', 'flash', 'preview', 'model', 'version', 'api'];
+                $isInvalid = false;
+                foreach ($invalidPatterns as $pattern) {
+                    if (stripos($title, $pattern) !== false) {
+                        Log::warning('Title contains invalid pattern, retrying', [
+                            'title' => $title,
+                            'pattern' => $pattern,
+                            'attempt' => $attempt,
+                        ]);
+                        $isInvalid = true;
+                        break;
+                    }
+                }
+                
+                if ($isInvalid && $attempt <= $maxRetries) {
+                    sleep(1);
+                    continue; // Retry
+                } elseif ($isInvalid) {
+                    // All retries exhausted, use fallback
+                    Log::error('All AI title generation attempts failed, using fallback');
+                    return $this->generateFallbackTitle($userMessage);
+                }
+                
+                // Valid title - check length
+                if (mb_strlen($title) > 100) {
+                    $title = mb_substr($title, 0, 80);
+                }
+
+                Log::info('Chat title generated successfully', [
+                    'title' => $title,
+                    'attempt' => $attempt,
+                ]);
+                return $title;
+                
+            } catch (\Throwable $e) {
+                Log::warning('Title generation attempt failed', [
+                    'error' => $e->getMessage(),
+                    'attempt' => $attempt,
+                ]);
+                
+                if ($attempt > $maxRetries) {
+                    // All retries exhausted
+                    Log::error('All AI title generation attempts failed with errors, using fallback');
+                    return $this->generateFallbackTitle($userMessage);
+                }
+                
+                sleep(1); // Brief pause before retry
+                continue;
             }
-
-            Log::info('Chat title generated successfully', ['title' => $title]);
-            return $title;
-        } catch (\Throwable $e) {
-            Log::warning('Failed to generate chat title', ['error' => $e->getMessage()]);
-            // Fallback to first 50 chars of user message
-            return mb_substr($userMessage, 0, 50) . (mb_strlen($userMessage) > 50 ? '...' : '');
         }
+        
+        // Should not reach here, but just in case
+        return $this->generateFallbackTitle($userMessage);
+    }
+
+    /**
+     * Generate a smart fallback title from user message
+     * Extracts key topic words instead of just copying first 50 chars
+     */
+    public function generateFallbackTitle(string $userMessage): string
+    {
+        // Remove common greeting words
+        $cleanMessage = preg_replace('/^(hello|hi|halo|hai|hey|good morning|good afternoon|selamat pagi|selamat siang|ola)[,!\s]*/i', '', $userMessage);
+        $cleanMessage = trim($cleanMessage);
+        
+        // If cleaned message is too short, just use it
+        if (mb_strlen($cleanMessage) <= 50) {
+            return $cleanMessage;
+        }
+        
+        // Try to extract meaningful topic (first sentence or up to 50 chars)
+        // Look for sentence end or comma
+        $sentences = preg_split('/[.!?]/', $cleanMessage, 2);
+        $firstSentence = trim($sentences[0]);
+        
+        if (mb_strlen($firstSentence) <= 50 && mb_strlen($firstSentence) > 10) {
+            return $firstSentence;
+        }
+        
+        // Cut at word boundary near 50 chars
+        if (mb_strlen($cleanMessage) > 50) {
+            $truncated = mb_substr($cleanMessage, 0, 50);
+            $lastSpace = mb_strrpos($truncated, ' ');
+            if ($lastSpace !== false && $lastSpace > 20) {
+                return mb_substr($cleanMessage, 0, $lastSpace) . '...';
+            }
+        }
+        
+        return mb_substr($cleanMessage, 0, 50) . '...';
+    }
+
+    /**
+     * Simple language detection for title generation
+     */
+    private function detectLanguageForTitle(string $text): string
+    {
+        $hay = strtolower($text);
+        
+        // Indonesian indicators
+        $indonesianWords = ['saya', 'aku', 'kamu', 'anda', 'yang', 'dan', 'dengan', 'untuk', 'dari', 'ini', 'itu', 'apa', 'bagaimana'];
+        $idCount = 0;
+        foreach ($indonesianWords as $word) {
+            if (preg_match('/\b' . preg_quote($word, '/') . '\b/', $hay)) {
+                $idCount++;
+            }
+        }
+        
+        // Spanish/Portuguese indicators
+        $latinWords = ['hola', 'ola', 'como', 'que', 'esta', 'por', 'para', 'cuando'];
+        $latinCount = 0;
+        foreach ($latinWords as $word) {
+            if (preg_match('/\b' . preg_quote($word, '/') . '\b/', $hay)) {
+                $latinCount++;
+            }
+        }
+        
+        if ($idCount >= 2) return 'Indonesian';
+        if ($latinCount >= 1) return 'Spanish/Portuguese';
+        return 'English'; // Default
     }
 
     public function __invoke(Request $request, GeminiClient $client): JsonResponse
@@ -90,18 +225,20 @@ PROMPT;
             'session_id' => ['sometimes', 'string', 'nullable'],
             'public_id' => ['sometimes', 'string', 'nullable'],
             'new_session' => ['sometimes', 'boolean'],
-            'reply_to' => ['sometimes', 'string', 'nullable'], // ID pesan yang di-reply
+            'reply_to' => ['sometimes', 'nullable'], // Bisa string (ID) atau object (message data)
         ]);
-
-        $systemInstruction = 'You are Mei, a gentle, empathetic, and informative virtual health assistant. '.
-            'Speak naturally, politely, and with a warm feminine tone as a caring female health assistant. '.
-            "When the user's message suggests an emergency, immediately advise them to call {$this->emergencyNumber} ".
-            "and include the word 'consultation' at the end of your message to prompt for a professional follow-up.";
 
         $messageCount = 0;
         if (! empty($validated['messages']) && is_array($validated['messages'])) {
             $messageCount = count($validated['messages']);
         }
+
+        $systemInstruction = 'You are Mei, a gentle, empathetic, and informative virtual health assistant. '.
+            'Speak naturally, politely, and with a warm feminine tone as a caring female health assistant. '.
+            'Answer questions directly without introducing yourself or using greetings like "Halo", "Hi", etc. '.
+            'Get straight to answering the user\'s question in a friendly but professional manner. '.
+            "When the user's message suggests an emergency, immediately advise them to call {$this->emergencyNumber} ".
+            "and include the word 'consultation' at the end of your message to prompt for a professional follow-up.";
 
         $shouldSuggestDoctor = $messageCount >= 6;
 
@@ -112,67 +249,17 @@ PROMPT;
                 'Include "consultation" at the end of your response to show the consultation button.';
         }
 
+        // Note: messages array will be populated from existing session later in the code
+        // This will be rebuilt after loading session data
         $fullPromptParts = [$systemInstruction, ''];
 
-        if (! empty($validated['messages']) && is_array($validated['messages'])) {
-            foreach ($validated['messages'] as $m) {
-                $sender = strtolower($m['sender'] ?? 'user');
-                $text = trim($m['message'] ?? '');
-                if ($text === '') {
-                    continue;
-                }
-
-                if (in_array($sender, ['user', 'u', 'me', 'saya', 'client'], true)) {
-                    $fullPromptParts[] = "User: {$text}";
-                } else {
-                    $fullPromptParts[] = "Assistant: {$text}";
-                }
-            }
-        }
-
-        $fullPromptParts[] = "User: " . $validated['prompt'];
-
-        $fullPrompt = implode("\n", $fullPromptParts);
+        // This section will be executed later after loading session
 
         Log::debug('GeminiController request received', [
             'ip' => $request->ip(),
             'user_agent' => $request->header('User-Agent'),
             'referer' => $request->header('Referer'),
         ]);
-
-        $response = $client->generateText(
-            $fullPrompt,
-            $validated['options'] ?? []
-        );
-
-        // Log raw response structure for debugging
-        Log::debug('Gemini API raw response structure', [
-            'has_candidates' => isset($response['candidates']),
-            'candidates_count' => count($response['candidates'] ?? []),
-            'first_candidate_keys' => array_keys($response['candidates'][0] ?? []),
-        ]);
-
-        $replyText = $this->extractTextFromResponse($response);
-
-        // Log if extracted text looks suspicious (too short or encoded)
-        if (strlen($replyText) < 10 || preg_match('/^[A-Za-z0-9+\/=]{50,}$/', substr($replyText, 0, 100))) {
-            Log::warning('Gemini extracted text looks suspicious', [
-                'text_length' => strlen($replyText),
-                'text_preview' => substr($replyText, 0, 200),
-                'raw_response' => $response,
-            ]);
-        }
-
-        $urgent = $this->detectEmergency($validated['prompt'].' '.$replyText);
-
-        if ($urgent) {
-            $suffix = "\n\nJika ini darurat, segera hubungi {$this->emergencyNumber}.\n\nconsultation";
-            if (stripos($replyText, (string) $this->emergencyNumber) === false) {
-                $replyText = trim($replyText).$suffix;
-            } elseif (stripos($replyText, 'consultation') === false) {
-                $replyText = trim($replyText)."\n\nconsultation";
-            }
-        }
 
         $currentMessageCount = $messageCount;
 
@@ -185,7 +272,7 @@ PROMPT;
             $incomingSessionId = $validated['session_id'] ?? null;
             $incomingPublicId = $validated['public_id'] ?? null;
             $forceNewSession = $validated['new_session'] ?? false;
-            $replyToId = $validated['reply_to'] ?? null; // Message ID yang di-reply
+            $replyToData = $validated['reply_to'] ?? null; // Bisa ID string atau message object
             $existingSession = null;
 
             Log::debug('GeminiController session lookup', [
@@ -199,19 +286,103 @@ PROMPT;
                 $existingSession = ChatActivity::find($incomingSessionId);
             }
 
+            // Load existing messages to provide context to AI
+            $existingMessages = [];
             if ($existingSession) {
                 $sessionData = $existingSession->chat_activity_data;
-                $existingMessagesCount = count($sessionData['messages'] ?? []);
+                $existingMessages = $sessionData['messages'] ?? [];
+                $existingMessagesCount = count($existingMessages);
                 $messageCount = max($messageCount, $existingMessagesCount);
+                
+                // Build conversation history for AI context
+                // Override the messages array if session exists
+                if (!empty($existingMessages)) {
+                    $validated['messages'] = $existingMessages;
+                }
             }
 
             Log::debug('GeminiController session found', [
                 'found' => $existingSession ? true : false,
                 'existing_id' => $existingSession?->id,
                 'existing_public_id' => $existingSession?->public_id,
+                'message_count' => count($existingMessages),
             ]);
 
-            $publicId = $incomingPublicId ?? (string) Str::uuid();
+            // Build full prompt with conversation history BEFORE sending to AI
+            $fullPromptParts = [$systemInstruction, ''];
+            
+            if (!empty($validated['messages']) && is_array($validated['messages'])) {
+                foreach ($validated['messages'] as $m) {
+                    $sender = strtolower($m['sender'] ?? 'user');
+                    $text = trim($m['message'] ?? '');
+                    if ($text === '') {
+                        continue;
+                    }
+
+                    if (in_array($sender, ['user', 'u', 'me', 'saya', 'client'], true)) {
+                        $fullPromptParts[] = "User: {$text}";
+                    } else {
+                        $fullPromptParts[] = "Assistant: {$text}";
+                    }
+                }
+            }
+
+            // Add context about replied message if present
+            $replyToData = $validated['reply_to'] ?? null;
+            if ($replyToData) {
+                // If reply_to is an object/array, use it directly
+                if (is_array($replyToData)) {
+                    $repliedMsg = $replyToData['message'] ?? '';
+                    if (!empty($repliedMsg)) {
+                        $repliedSender = strtolower($replyToData['sender'] ?? 'user');
+                        $senderLabel = in_array($repliedSender, ['user', 'u', 'me', 'saya', 'client'], true) ? 'User' : 'Assistant';
+                        $fullPromptParts[] = "[User is replying to {$senderLabel}'s message: \"{$repliedMsg}\"]";
+                    }
+                }
+                // If it's just an ID string, we'll look it up from existingMessages later
+            }
+
+            $fullPromptParts[] = "User: " . $validated['prompt'];
+            $fullPrompt = implode("\n", $fullPromptParts);
+
+            Log::debug('Full prompt built', [
+                'prompt_length' => strlen($fullPrompt),
+                'message_count' => count($validated['messages'] ?? []),
+            ]);
+
+            // Send to Gemini with full context
+            $response = $client->generateText(
+                $fullPrompt,
+                $validated['options'] ?? []
+            );
+
+            $replyText = $this->extractTextFromResponse($response);
+
+            if (strlen($replyText) < 10 || preg_match('/^[A-Za-z0-9+\/=]{50,}$/', substr($replyText, 0, 100))) {
+                Log::warning('Gemini extracted text looks suspicious', [
+                    'text_length' => strlen($replyText),
+                    'text_preview' => substr($replyText, 0, 200),
+                    'raw_response' => $response,
+                ]);
+            }
+
+            $urgent = $this->detectEmergency($validated['prompt'].' '.$replyText);
+
+            if ($urgent) {
+                $suffix = "\n\nJika ini darurat, segera hubungi {$this->emergencyNumber}.\n\nconsultation";
+                if (stripos($replyText, (string) $this->emergencyNumber) === false) {
+                    $replyText = trim($replyText).$suffix;
+                } elseif (stripos($replyText, 'consultation') === false) {
+                    $replyText = trim($replyText)."\n\nconsultation";
+                }
+            }
+
+            // Ensure public_id is always a valid UUID
+            if (!empty($incomingPublicId) && \Ramsey\Uuid\Uuid::isValid($incomingPublicId)) {
+                $publicId = $incomingPublicId;
+            } else {
+                $publicId = (string) Str::uuid();
+            }
             
             $sessionId = null;
 
@@ -219,17 +390,33 @@ PROMPT;
                 $sessionData = $existingSession->chat_activity_data;
                 $existingMessages = $sessionData['messages'] ?? [];
 
-                // Cari pesan yang di-reply (jika ada)
+                // Handle pesan yang di-reply (jika ada)
                 $repliedMessage = null;
-                if ($replyToId) {
-                    foreach ($existingMessages as $msg) {
-                        if (isset($msg['id']) && $msg['id'] === $replyToId) {
+                if ($replyToData) {
+                    if (is_array($replyToData)) {
+                        // Jika sudah berbentuk object, langsung pakai
+                        // ID optional, yang wajib hanya message
+                        if (!empty($replyToData['message'])) {
                             $repliedMessage = [
-                                'id' => $msg['id'],
-                                'message' => $msg['message'],
-                                'sender' => $msg['sender'],
+                                'message' => $replyToData['message'],
+                                'sender' => $replyToData['sender'] ?? 'user',
                             ];
-                            break;
+                            // Include ID only if provided
+                            if (isset($replyToData['id'])) {
+                                $repliedMessage['id'] = $replyToData['id'];
+                            }
+                        }
+                    } elseif (is_string($replyToData)) {
+                        // Jika hanya ID, lookup dari existing messages
+                        foreach ($existingMessages as $msg) {
+                            if (isset($msg['id']) && $msg['id'] === $replyToData) {
+                                $repliedMessage = [
+                                    'id' => $msg['id'],
+                                    'message' => $msg['message'],
+                                    'sender' => $msg['sender'],
+                                ];
+                                break;
+                            }
                         }
                     }
                 }
@@ -449,51 +636,18 @@ PROMPT;
                 $firstPart = $parts[0] ?? [];
                 $text = $firstPart['text'] ?? null;
                 
-                if ($text !== null && is_string($text)) {
+                if ($text !== null && is_string($text) && !empty(trim($text))) {
                     return trim($text);
                 }
             }
         }
 
-        // Fallback: try to find 'text' key anywhere in response
-        $text = $this->findTextInResponse($response);
-        if ($text !== null) {
-            return trim($text);
-        }
-
-        // Last resort: collect all strings and return the longest readable one
-        $strings = [];
-        $this->collectStringsRecursive($response, $strings);
-
-        if (empty($strings)) {
-            Log::warning('Gemini response has no extractable text', ['response' => $response]);
-            return '';
-        }
-
-        // Filter out base64-like strings (they contain mostly alphanumeric + /+=)
-        $readableStrings = array_filter($strings, function($s) {
-            // Skip if it looks like base64 (mostly alphanumeric, +, /, =)
-            if (strlen($s) > 100 && preg_match('/^[A-Za-z0-9+\/=]+$/', $s)) {
-                return false;
-            }
-            // Skip if it has very few spaces (likely encoded data)
-            $spaceRatio = substr_count($s, ' ') / max(strlen($s), 1);
-            if (strlen($s) > 50 && $spaceRatio < 0.05) {
-                return false;
-            }
-            return true;
-        });
-
-        if (empty($readableStrings)) {
-            Log::warning('Gemini response contains only encoded data', ['response' => $response]);
-            return 'Maaf, terjadi kesalahan dalam memproses respons. Silakan coba lagi.';
-        }
-
-        usort($readableStrings, function ($a, $b) {
-            return strlen($b) <=> strlen($a);
-        });
-
-        return trim($readableStrings[0]);
+        Log::warning('Failed to extract text from Gemini response', [
+            'response_keys' => array_keys($response),
+            'has_candidates' => isset($response['candidates']),
+        ]);
+        
+        return '';
     }
 
     /**

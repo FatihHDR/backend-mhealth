@@ -52,16 +52,7 @@ class AiAgent
 
         // Only detect emergency from USER prompt, not from AI reply
         $urgent = $this->detectEmergency($prompt);
-
-        if ($urgent && stripos($replyText, 'consultation') === false) {
-            $language = $this->detectLanguage($prompt);
-            $emergencyMessage = $language === 'id' 
-                ? "Jika ini darurat, segera hubungi {$this->emergencyNumber}."
-                : "If this is an emergency, please call {$this->emergencyNumber} immediately.";
-            
-            $replyText = trim($replyText)."\n\n{$emergencyMessage}\n\nconsultation";
-        }
-
+        
         return [
             'reply' => $replyText,
             'raw' => $response,
