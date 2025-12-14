@@ -6,6 +6,10 @@ use App\Helpers\SlugHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\Paginates;
 use App\Http\Controllers\Concerns\Searchable;
+use App\Http\Resources\EventResource;
+use App\Http\Resources\EventCollection;
+use App\Http\Requests\StoreEventRequest;
+use App\Http\Requests\UpdateEventRequest;
 use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -26,7 +30,7 @@ class EventController extends Controller
         $query = $this->applySearch($query, $request);
         $events = $this->paginateQuery($query);
 
-        return response()->json($events);
+        return new EventCollection($events);
     }
 
     /**
@@ -45,7 +49,7 @@ class EventController extends Controller
         } else {
             $event = Event::where('slug', $id)->firstOrFail();
         }
-        return response()->json($event);
+        return new EventResource($event);
     }
 
     /**
@@ -56,7 +60,7 @@ class EventController extends Controller
     public function showBySlug($slug)
     {
         $event = Event::where('slug', $slug)->firstOrFail();
-        return response()->json($event);
+        return new EventResource($event);
     }
 
     /**
@@ -83,25 +87,9 @@ class EventController extends Controller
      *   "status": "upcoming"                                       // Optional - upcoming/ongoing/past
      * }
      */
-    public function store(Request $request)
+    public function store(StoreEventRequest $request)
     {
-        $data = $request->validate([
-            'title' => 'required_without_all:en_title,id_title|string|max:255',
-            'en_title' => 'nullable|string|max:255',
-            'id_title' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'en_description' => 'nullable|string',
-            'id_description' => 'nullable|string',
-            'highlight_image' => 'nullable|url',
-            'reference_image' => 'nullable|url',
-            'organized_image' => 'nullable|url',
-            'organized_by' => 'nullable|string|max:255',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'location_name' => 'nullable|string|max:255',
-            'location_map' => 'nullable|url',
-            'status' => 'nullable|string|in:upcoming,ongoing,past',
-        ]);
+        $data = $request->validated();
 
         $payload = [
             'en_title' => $data['en_title'] ?? $data['title'] ?? '',
@@ -117,15 +105,15 @@ class EventController extends Controller
             'end_date' => $data['end_date'],
             'location_name' => $data['location_name'] ?? null,
             'location_map' => $data['location_map'] ?? null,
-            'status' => $data['status'] ?? 'upcoming',
+            'status' => $data['status'] ?? 'draft',
         ];
 
         $event = Event::create($payload);
 
-        return response()->json([
-            'message' => 'Event created successfully',
-            'data' => $event,
-        ], 201);
+        return (new EventResource($event))
+            ->additional(['message' => 'Event created successfully'])
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
@@ -135,27 +123,11 @@ class EventController extends Controller
      * 
      * Payload: Same as store, all fields optional
      */
-    public function update(Request $request, $id)
+    public function update(UpdateEventRequest $request, $id)
     {
         $event = Event::findOrFail($id);
 
-        $data = $request->validate([
-            'title' => 'nullable|string|max:255',
-            'en_title' => 'nullable|string|max:255',
-            'id_title' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'en_description' => 'nullable|string',
-            'id_description' => 'nullable|string',
-            'highlight_image' => 'nullable|url',
-            'reference_image' => 'nullable|url',
-            'organized_image' => 'nullable|url',
-            'organized_by' => 'nullable|string|max:255',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'location_name' => 'nullable|string|max:255',
-            'location_map' => 'nullable|url',
-            'status' => 'nullable|string|in:upcoming,ongoing,past',
-        ]);
+        $data = $request->validated();
 
         $payload = [];
 
@@ -196,10 +168,8 @@ class EventController extends Controller
 
         $event->update($payload);
 
-        return response()->json([
-            'message' => 'Event updated successfully',
-            'data' => $event->fresh(),
-        ]);
+        return (new EventResource($event->fresh()))
+            ->additional(['message' => 'Event updated successfully']);
     }
 
     /**
@@ -222,7 +192,7 @@ class EventController extends Controller
 
         $events = $this->paginateQuery($query);
 
-        return response()->json($events);
+        return new EventCollection($events);
     }
 
     public function past()
@@ -232,6 +202,6 @@ class EventController extends Controller
 
         $events = $this->paginateQuery($query);
 
-        return response()->json($events);
+        return new EventCollection($events);
     }
 }

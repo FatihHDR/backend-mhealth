@@ -281,8 +281,12 @@ class GeminiController extends Controller
             'referer' => $request->header('Referer'),
         ]);
 
-        $currentMessageCount = $messageCount;
-
+        $currentMessageCount = $messageCount;        
+        // Initialize variables outside try block to ensure they're available throughout
+        $isLifeThreatening = false;
+        $explicitConsultationRequest = false;
+        $urgent = false;
+        $replyText = '';
         try {
             // Get user_id from request body first (from frontend), then from middleware
             $userId = $validated['user_id'] ?? $request->attributes->get('supabase_user_id') ?? null;
@@ -562,25 +566,20 @@ class GeminiController extends Controller
             $needsConsultation = $this->detectConsultationNeed($replyText);
             
             if ($needsConsultation) {
-                // AI has gathered enough info and determined consultation is needed
-                $urgent = true; // Set urgent flag
+                $urgent = true; 
                 
-                // Add consultation keyword if not already present
                 if (stripos($replyText, 'consultation') === false) {
                     $replyText = trim($replyText) . "\n\nconsultation";
                 }
             } elseif (stripos($replyText, 'konsultasi') === false && stripos($replyText, 'dokter') === false) {
-                // Extended chat but no clear need for consultation yet - gentle reminder
                 $doctorSuggestion = "\n\n💡 *Sudah beberapa kali kita berdiskusi tentang kesehatan Anda. Untuk penanganan yang lebih tepat dan menyeluruh, saya sarankan untuk berkonsultasi langsung dengan dokter kami ya!*\n\nconsultation";
                 $replyText = trim($replyText) . $doctorSuggestion;
-                $urgent = true; // Set urgent after extended discussion
+                $urgent = true;
             }
         }
 
         $packageSuggestions = $this->detectPackageRecommendations($validated['prompt'].' '.$replyText);
 
-        // Use the actual message count (from session) for consultation suggestion
-        // Suggest consultation after 3 exchanges (6 messages)
         $suggestConsultation = $currentMessageCount >= 6;
 
         $actions = [];
