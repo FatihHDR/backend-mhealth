@@ -97,10 +97,34 @@ GET /api/v1/chat-activities/123e4567-e89b-12d3-a456-426614174000/message/1733097
 
 ---
 
-### 3. **Get Chat Session**
+### 3. **Get Chat Session** 🔒 (Privacy Protected)
 **GET** `/api/v1/chat-activities/{session_id}`
 
-#### Response
+#### Privacy Protection
+Endpoint ini memerlukan **authorization** untuk mencegah akses tidak sah.
+
+**Required Headers/Query Params:**
+- `X-Public-ID` (header) atau `public_id` (query param)
+- `X-User-ID` (header) atau `user_id` (query param) - optional
+
+**Access Rules:**
+- ✅ Allowed if `user_id` matches session's `user_id` (same account)
+- ✅ Allowed if `public_id` matches session's `public_id` (same device)
+- ❌ Denied with **403 Forbidden** if no match
+
+#### Example with Auth
+```
+GET /api/v1/chat-activities/0199a7ce-72da-4adc-a804-4220b473a7dd?public_id=a6da03d0-d342-478e-8848-473e0e5ab279
+```
+
+OR with headers:
+```
+GET /api/v1/chat-activities/0199a7ce-72da-4adc-a804-4220b473a7dd
+X-Public-ID: a6da03d0-d342-478e-8848-473e0e5ab279
+X-User-ID: fc4d78e9-19f4-4638-aa45-982582abbc1c
+```
+
+#### Response (Success 200)
 ```json
 {
   "id": "123e4567-e89b-12d3-a456-426614174000",
@@ -151,14 +175,26 @@ GET /api/v1/chat-activities/123e4567-e89b-12d3-a456-426614174000/message/1733097
 }
 ```
 
+#### Response (Access Denied 403)
+```json
+{
+  "message": "Access denied. You do not have permission to view this chat session.",
+  "error": "CHAT_ACCESS_DENIED",
+  "hint": "This chat belongs to another user or device."
+}
+```
+
 ---
 
 ### 4. **Get All Sessions for User**
-**GET** `/api/v1/chat-activities/all/{public_id}`
+**GET** `/api/v1/chat-activities/all/{id}`
 
-#### Example
+**Parameter:** `{id}` can be either `public_id` or `user_id`
+
+#### Examples
 ```
-GET /api/v1/chat-activities/all/user-device-123
+GET /api/v1/chat-activities/all/a6da03d0-d342-478e-8848-473e0e5ab279  (public_id)
+GET /api/v1/chat-activities/all/fc4d78e9-19f4-4638-aa45-982582abbc1c  (user_id)
 ```
 
 #### Response
@@ -199,15 +235,78 @@ GET /api/v1/chat-activities/all/user-device-123
 ---
 
 ### 6. **Delete All Sessions for User**
-**DELETE** `/api/v1/chat-activities/all/{public_id}`
+**DELETE** `/api/v1/chat-activities/all/{id}`
+
+**Parameter:** `{id}` can be either `public_id` or `user_id`
+
+#### Examples
+```
+DELETE /api/v1/chat-activities/all/a6da03d0-d342-478e-8848-473e0e5ab279  (public_id)
+DELETE /api/v1/chat-activities/all/fc4d78e9-19f4-4638-aa45-982582abbc1c  (user_id)
+```
 
 #### Response
 ```json
 {
-  "message": "All chat sessions deleted",
-  "count": 5
+  "message": "All sessions deleted",
+  "deleted_count": 5
 }
 ```
+
+---
+
+## 🔒 Privacy & Access Control
+
+### Chat Privacy Protection
+
+Starting from this version, chat sessions are **private and protected**. Users cannot access other users' chat sessions even if they have the session link.
+
+#### How It Works
+
+When User 1 shares a session link with User 2:
+```
+https://yourapp.com/en/c/0199a7ce-72da-4adc-a804-4220b473a7dd
+```
+
+User 2 will get **403 Forbidden** unless:
+- User 2 has the **same `user_id`** (logged in with same account)
+- OR User 2 has the **same `public_id`** (same device/browser)
+
+#### Implementation Example
+
+```javascript
+// Frontend: Always send user/device identification
+async function fetchChatSession(sessionId) {
+  const publicId = localStorage.getItem('device_id');
+  const userId = await getSupabaseUserId(); // From auth
+  
+  const response = await fetch(
+    `/api/v1/chat-activities/${sessionId}?public_id=${publicId}&user_id=${userId}`,
+    {
+      headers: {
+        'X-Public-ID': publicId,
+        'X-User-ID': userId
+      }
+    }
+  );
+  
+  if (response.status === 403) {
+    // Show error: "This chat belongs to another user"
+    showAccessDeniedMessage();
+  }
+  
+  return response.json();
+}
+```
+
+#### Protected Endpoints
+- ✅ `GET /chat-activities/{session_id}` - View session
+- ✅ `GET /chat-activities/{session_id}/message/{message_id}` - View message
+
+#### Unprotected Endpoints
+- `GET /chat-activities/all/{id}` - Only returns sessions matching the provided ID
+- `DELETE /chat-activities/{id}` - Only deletes if authorized
+- `POST /gemini/generate` - Creates new session or adds to existing
 
 ---
 

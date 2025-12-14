@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\Paginates;
 use Illuminate\Http\Request;
 use App\Models\ChatActivity;
 use Illuminate\Support\Facades\Log;
 
 class ChatActivityController extends Controller
 {
+    use Paginates;
     /**
      * Display a listing of chat sessions.
      * Supports optional filtering by `public_id` or `user_id` and pagination.
@@ -32,21 +34,25 @@ class ChatActivityController extends Controller
     }
 
     /**
-     * Get ALL chat sessions for a specific public_id or user_id (no pagination).
+     * Get ALL chat sessions for a specific public_id or user_id with pagination support.
      * Endpoint: GET /chat-activities/all/{id}
      * Parameter {id} can be either public_id or user_id
+     * 
+     * Query Parameters:
+     * - per_page: Number of items per page (default: 15, max: 100, or 'all' for no pagination)
+     * - page: Page number (default: 1)
+     * 
+     * Examples:
+     * - GET /chat-activities/all/{id}?per_page=20&page=1
+     * - GET /chat-activities/all/{id}?per_page=all (returns all without pagination)
      */
     public function all(string $id)
     {
-        $sessions = ChatActivity::where('public_id', $id)
+        $query = ChatActivity::where('public_id', $id)
             ->orWhere('user_id', $id)
-            ->orderBy('updated_at', 'desc')
-            ->get();
+            ->orderBy('updated_at', 'desc');
 
-        return response()->json([
-            'data' => $sessions,
-            'total' => $sessions->count(),
-        ]);
+        return response()->json($this->paginateQuery($query));
     }
 
     /**

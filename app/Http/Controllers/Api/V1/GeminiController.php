@@ -253,17 +253,21 @@ class GeminiController extends Controller
             'Speak naturally, politely, and with a warm feminine tone as a caring female health assistant. '.
             'Answer questions directly without introducing yourself or using greetings like "Halo", "Hi", etc. '.
             'Get straight to answering the user\'s question in a friendly but professional manner. '.
-            "When the user's message suggests an emergency, immediately advise them to call {$this->emergencyNumber} ".
-            "and include the word 'consultation' at the end of your message to prompt for a professional follow-up.";
+            "\n\n🚫 ABSOLUTE FORBIDDEN WORDS IN INITIAL RESPONSES 🚫\n".
+            "NEVER use these words when user FIRST mentions symptoms (in first 1-3 exchanges):\n".
+            "- consultation / konsultasi / consult\n".
+            "- doctor / dokter / physician\n".
+            "- emergency / darurat (except for life-threatening cases)\n".
+            "- hospital / rumah sakit / clinic\n\n".
+            "✅ CORRECT BEHAVIOR:\n".
+            "1. FIRST: Ask follow-up questions about symptoms (duration, severity 1-10, other symptoms)\n".
+            "2. THEN: Provide health info, self-care tips, and education\n".
+            "3. ONLY AFTER gathering sufficient info through multiple exchanges: Suggest consultation if truly needed\n".
+            "4. For SEVERE life-threatening symptoms only: Immediately advise to call {$this->emergencyNumber}\n\n".
+            "Focus on understanding the user's condition thoroughly before making any referrals.";
 
-        $shouldSuggestDoctor = $messageCount >= 6;
-
-        if ($shouldSuggestDoctor) {
-            $systemInstruction .= ' Since you have been chatting for a while about health concerns, '.
-                'gently suggest that the user consider consulting with a professional doctor for a more thorough examination. '.
-                'Remind them that while you can provide general health information, a doctor can give personalized medical advice. '.
-                'Include "consultation" at the end of your response to show the consultation button.';
-        }
+        // Remove the shouldSuggestDoctor logic from system instruction
+        // We'll handle consultation suggestions differently based on message count
 
         // Note: messages array will be populated from existing session later in the code
         // This will be rebuilt after loading session data
@@ -383,14 +387,43 @@ class GeminiController extends Controller
                 ]);
             }
 
-            $urgent = $this->detectEmergency($validated['prompt'].' '.$replyText);
-
-            if ($urgent) {
-                $suffix = "\n\nJika ini darurat, segera hubungi {$this->emergencyNumber}.\n\nconsultation";
+            // Check if user explicitly requests consultation
+            $explicitConsultationRequest = $this->detectExplicitConsultationRequest($validated['prompt']);
+            
+            // Check for immediate life-threatening emergency ONLY
+            $isLifeThreatening = $this->detectLifeThreateningEmergency($validated['prompt']);
+            
+            // Initialize urgent flag - will be true for explicit request, life-threatening, OR after sufficient consultation need
+            $urgent = false;
+            
+            if ($explicitConsultationRequest) {
+                // User explicitly wants consultation - no need to gather info
+                $urgent = true;
+                if (stripos($replyText, 'consultation') === false) {
+                    $replyText = trim($replyText) . "\n\nconsultation";
+                }
+            } elseif ($isLifeThreatening) {
+                // CRITICAL EMERGENCY - immediate action required
+                $urgent = true; // ALWAYS true for life-threatening
+                
+                // Add consultation keyword if not present
+                if (stripos($replyText, 'consultation') === false) {
+                    $replyText = trim($replyText) . "\n\nconsultation";
+                }
+                
+                // Add emergency contact if AI didn't include it
                 if (stripos($replyText, (string) $this->emergencyNumber) === false) {
+                    $suffix = "\n\n⚠️ INI SITUASI DARURAT! Segera hubungi {$this->emergencyNumber} untuk bantuan medis segera.";
                     $replyText = trim($replyText).$suffix;
-                } elseif (stripos($replyText, 'consultation') === false) {
-                    $replyText = trim($replyText)."\n\nconsultation";
+                }
+            } else {
+                // Check if AI response contains emergency number (means AI detected emergency)
+                // This handles cases where emergency is detected after gathering info
+                if (stripos($replyText, (string) $this->emergencyNumber) !== false) {
+                    $urgent = true;
+                    if (stripos($replyText, 'consultation') === false) {
+                        $replyText = trim($replyText) . "\n\nconsultation";
+                    }
                 }
             }
 
@@ -460,6 +493,7 @@ class GeminiController extends Controller
                     'sender' => 'bot',
                     'timestamp' => now()->toIso8601String(),
                     'replyTo' => null, // Bot tidak pernah reply ke message tertentu
+                    'urgent' => $urgent, // Track urgent status in bot response
                 ];
 
                 $publicId = $existingSession->public_id;
@@ -504,6 +538,7 @@ class GeminiController extends Controller
                             'sender' => 'bot',
                             'timestamp' => now()->toIso8601String(),
                             'replyTo' => null, // Bot tidak pernah reply ke message tertentu
+                            'urgent' => $urgent, // Track urgent status in bot response
                         ],
                     ],
                     'urgent' => $urgent, // Track emergency status
@@ -522,11 +557,24 @@ class GeminiController extends Controller
             $currentMessageCount = $messageCount + 2;
         }
 
-        // Add doctor consultation suggestion to reply text after 3 exchanges (6 messages)
-        // Only if not already urgent (which already has consultation suggestion)
-        if (!$urgent && $currentMessageCount >= 6 && stripos($replyText, 'consultation') === false) {
-            $doctorSuggestion = "\n\n💡 *Sudah beberapa kali kita berdiskusi tentang kesehatan Anda. Untuk penanganan yang lebih tepat dan menyeluruh, saya sarankan untuk berkonsultasi langsung dengan dokter kami ya!*\n\nconsultation";
-            $replyText = trim($replyText) . $doctorSuggestion;
+        // After sufficient information gathered (4+ exchanges = 8+ messages), check if AI suggests consultation
+        if (!$isLifeThreatening && $currentMessageCount >= 8) {
+            $needsConsultation = $this->detectConsultationNeed($replyText);
+            
+            if ($needsConsultation) {
+                // AI has gathered enough info and determined consultation is needed
+                $urgent = true; // Set urgent flag
+                
+                // Add consultation keyword if not already present
+                if (stripos($replyText, 'consultation') === false) {
+                    $replyText = trim($replyText) . "\n\nconsultation";
+                }
+            } elseif (stripos($replyText, 'konsultasi') === false && stripos($replyText, 'dokter') === false) {
+                // Extended chat but no clear need for consultation yet - gentle reminder
+                $doctorSuggestion = "\n\n💡 *Sudah beberapa kali kita berdiskusi tentang kesehatan Anda. Untuk penanganan yang lebih tepat dan menyeluruh, saya sarankan untuk berkonsultasi langsung dengan dokter kami ya!*\n\nconsultation";
+                $replyText = trim($replyText) . $doctorSuggestion;
+                $urgent = true; // Set urgent after extended discussion
+            }
         }
 
         $packageSuggestions = $this->detectPackageRecommendations($validated['prompt'].' '.$replyText);
@@ -631,15 +679,138 @@ class GeminiController extends Controller
         return [];
     }
 
-    private function detectEmergency(string $text): bool
+    /**
+     * Detect if user explicitly requests consultation with doctor
+     */
+    private function detectExplicitConsultationRequest(string $text): bool
+    {
+        $hay = strtolower(trim($text));
+        
+        // Keywords that indicate user wants to consult with doctor
+        $consultationKeywords = [
+            'ingin konsul',
+            'mau konsul',
+            'ingin konsultasi',
+            'mau konsultasi',
+            'konsul dengan dokter',
+            'konsultasi dengan dokter',
+            'konsul dokter',
+            'konsultasi dokter',
+            'bicara dengan dokter',
+            'bertemu dokter',
+            'jumpa dokter',
+            'periksa ke dokter',
+            'want to consult',
+            'need to consult',
+            'consult with doctor',
+            'see a doctor',
+            'talk to doctor',
+            'speak with doctor',
+        ];
+        
+        foreach ($consultationKeywords as $kw) {
+            if (strpos($hay, $kw) !== false) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Detect ONLY life-threatening emergencies that need immediate action
+     */
+    private function detectLifeThreateningEmergency(string $text): bool
     {
         $hay = strtolower($text);
-        foreach ($this->emergencyKeywords as $kw) {
+        
+        // Only the most critical keywords
+        $criticalKeywords = [
+            // Medical emergencies
+            'unconscious', 'pingsan', 'tidak sadarkan diri',
+            'stopped breathing', 'not breathing', 'tidak bisa bernapas',
+            'no pulse', 'cardiac arrest', 'serangan jantung',
+            'severe bleeding', 'pendarahan hebat', 'bleeding heavily',
+            'suffocating', 'tercekik',
+            'overdose',
+            'seizure', 'kejang',
+            
+            // Breathing emergencies
+            'sesak nafas berat', 'sesak napas berat',
+            'severe shortness of breath', 'can\'t breathe',
+            'difficulty breathing', 'kesulitan bernapas',
+            'mengi', 'wheezing', 'napas berbunyi',
+            
+            // Suicide/self-harm indicators
+            'suicide', 'bunuh diri', 'ingin mati', 'mau mati',
+            'ingin jatuh', 'mau jatuh', 'loncat', 'melompat',
+            'mau bunuh diri', 'akan bunuh diri',
+            'tidak ingin hidup', 'sudah tidak tahan',
+            'want to die', 'want to jump', 'going to jump',
+            'end my life', 'kill myself',
+        ];
+        
+        foreach ($criticalKeywords as $kw) {
             if (strpos($hay, strtolower($kw)) !== false) {
                 return true;
             }
         }
+        
+        // Context-based detection for severe breathing issues
+        // "sesak" + "berat" / "parah" / "sangat"
+        $hasSevereBreathing = (
+            (strpos($hay, 'sesak') !== false || strpos($hay, 'sesak nafas') !== false || strpos($hay, 'sesak napas') !== false) &&
+            (strpos($hay, 'berat') !== false || strpos($hay, 'parah') !== false || strpos($hay, 'sangat') !== false || strpos($hay, 'hebat') !== false)
+        );
+        
+        if ($hasSevereBreathing) {
+            return true;
+        }
+        
+        // Context-based detection for suicide risk
+        // If mentions "gedung"/"building" + "tinggi"/"lantai" + "jatuh"/"loncat"
+        $hasBuildingContext = (
+            (strpos($hay, 'gedung') !== false || strpos($hay, 'building') !== false || strpos($hay, 'rooftop') !== false) &&
+            (strpos($hay, 'lantai') !== false || strpos($hay, 'tinggi') !== false || strpos($hay, 'atas') !== false) &&
+            (strpos($hay, 'jatuh') !== false || strpos($hay, 'loncat') !== false || strpos($hay, 'melompat') !== false || strpos($hay, 'terjun') !== false)
+        );
+        
+        if ($hasBuildingContext) {
+            return true;
+        }
 
+        return false;
+    }
+    
+    /**
+     * Detect if AI response indicates that consultation is needed
+     * This is called after sufficient information has been gathered
+     */
+    private function detectConsultationNeed(string $aiResponse): bool
+    {
+        $hay = strtolower($aiResponse);
+        
+        // Keywords that indicate AI is recommending medical consultation
+        $consultationIndicators = [
+            'sebaiknya konsultasi',
+            'perlu konsultasi',
+            'hubungi dokter',
+            'periksa ke dokter',
+            'temui dokter',
+            'kunjungi dokter',
+            'should consult',
+            'need to see a doctor',
+            'visit a doctor',
+            'medical attention',
+            'seek medical',
+        ];
+        
+        foreach ($consultationIndicators as $indicator) {
+            if (strpos($hay, $indicator) !== false) {
+                return true;
+            }
+        }
+        
         return false;
     }
 
