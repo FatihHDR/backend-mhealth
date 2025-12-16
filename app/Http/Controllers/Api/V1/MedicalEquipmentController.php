@@ -81,8 +81,8 @@ class MedicalEquipmentController extends Controller
             'reference_image' => $data['reference_image'] ?? [],
             'spesific_gender' => $data['spesific_gender'] ?? 'both',
             'vendor_id' => $data['vendor_id'] ?? null,
-            'real_price' => $data['real_price'] ?? null,
-            'discount_price' => $data['discount_price'] ?? null,
+            'real_price' => isset($data['real_price']) ? (string) $data['real_price'] : null,
+            'discount_price' => isset($data['discount_price']) ? (string) $data['discount_price'] : null,
             'status' => $data['status'] ?? 'draft',
         ];
 
@@ -148,8 +148,17 @@ class MedicalEquipmentController extends Controller
             'discount_price', 
             'status'
         ];
-        
+
+        // Normalize numeric price inputs to strings when updating
+        if (array_key_exists('real_price', $data)) {
+            $payload['real_price'] = $data['real_price'] === null ? null : (string) $data['real_price'];
+        }
+        if (array_key_exists('discount_price', $data)) {
+            $payload['discount_price'] = $data['discount_price'] === null ? null : (string) $data['discount_price'];
+        }
+
         foreach ($directFields as $key) {
+            if (in_array($key, ['real_price', 'discount_price'])) continue; // already handled
             if (array_key_exists($key, $data)) {
                 $payload[$key] = $data[$key];
             }

@@ -43,9 +43,31 @@ class StoreMedicalEquipmentRequest extends FormRequest
             // Foreign key
             'vendor_id' => 'nullable|uuid|exists:vendor,id',
             
-            // Pricing (text fields in DB)
-            'real_price' => 'nullable|string|max:100',
-            'discount_price' => 'nullable|string|max:100',
+            // Pricing (DB stores as text) - accept string or numeric and enforce length
+            'real_price' => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    if (is_null($value)) return;
+                    if (!is_string($value) && !is_numeric($value)) {
+                        return $fail('The ' . $attribute . ' must be a string or numeric.');
+                    }
+                    if (mb_strlen((string) $value) > 100) {
+                        return $fail('The ' . $attribute . ' must not exceed 100 characters.');
+                    }
+                },
+            ],
+            'discount_price' => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    if (is_null($value)) return;
+                    if (!is_string($value) && !is_numeric($value)) {
+                        return $fail('The ' . $attribute . ' must be a string or numeric.');
+                    }
+                    if (mb_strlen((string) $value) > 100) {
+                        return $fail('The ' . $attribute . ' must not exceed 100 characters.');
+                    }
+                },
+            ],
             
             // Status enum
             'status' => 'nullable|string|in:draft,published,archived',
