@@ -98,7 +98,7 @@ class EventController extends Controller
             'en_description' => $data['en_description'] ?? $data['description'] ?? null,
             'id_description' => $data['id_description'] ?? $data['description'] ?? null,
             'highlight_image' => $data['highlight_image'] ?? null,
-            'reference_image' => $data['reference_image'] ?? null,
+            'reference_image' => isset($data['reference_image']) ? (is_array($data['reference_image']) ? $data['reference_image'] : [$data['reference_image']]) : null,
             'organized_image' => $data['organized_image'] ?? null,
             'organized_by' => $data['organized_by'] ?? null,
             'start_date' => $data['start_date'],
@@ -160,7 +160,14 @@ class EventController extends Controller
 
         $directFields = ['highlight_image', 'reference_image', 'organized_image', 'organized_by', 
                          'start_date', 'end_date', 'location_name', 'location_map', 'status'];
+
+        // Normalize reference_image to array if provided as single string
+        if (array_key_exists('reference_image', $data)) {
+            $payload['reference_image'] = is_array($data['reference_image']) ? $data['reference_image'] : ($data['reference_image'] === null ? null : [$data['reference_image']]);
+        }
+
         foreach ($directFields as $key) {
+            if ($key === 'reference_image') continue; // already handled
             if (array_key_exists($key, $data)) {
                 $payload[$key] = $data[$key];
             }

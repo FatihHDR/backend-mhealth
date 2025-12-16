@@ -32,6 +32,7 @@ class Event extends Model
     protected $casts = [
         'start_date' => 'datetime',
         'end_date' => 'datetime',
+        'reference_image' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
