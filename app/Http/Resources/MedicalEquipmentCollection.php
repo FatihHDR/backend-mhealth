@@ -26,25 +26,4 @@ class MedicalEquipmentCollection extends ResourceCollection
         ];
     }
 
-    /**
-     * Get additional data that should be returned with the resource array.
-     *
-     * @return array<string, mixed>
-     */
-    public function with(Request $request): array
-    {
-        // Only include meta when paginated
-        if ($this->resource instanceof \Illuminate\Pagination\LengthAwarePaginator) {
-            return [
-                'meta' => [
-                    'current_page' => $this->resource->currentPage(),
-                    'last_page' => $this->resource->lastPage(),
-                    'per_page' => $this->resource->perPage(),
-                    'total' => $this->resource->total(),
-                ],
-            ];
-        }
-
-        return [];
-    }
 }
