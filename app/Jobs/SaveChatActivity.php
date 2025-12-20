@@ -68,15 +68,7 @@ class SaveChatActivity implements ShouldQueue
                 
                 // Handle chat_status update if present
                 if (isset($this->session['status'])) {
-                    $newStatus = $this->session['status'];
-                    $target->status = $newStatus;
-                    
-                    if ($newStatus === 'public') {
-                         // Always regenerate slug when setting to public (as per requirement: "generate ulang")
-                         $target->share_slug = \Illuminate\Support\Str::random(16);
-                    } else {
-                        $target->share_slug = null;
-                    }
+                    $target->status = $this->session['status'];
                 }
 
                 // ensure public_id / user_id set
@@ -104,13 +96,6 @@ class SaveChatActivity implements ShouldQueue
                 
                 $status = $this->session['status'] ?? 'private';
                 $newSession->status = $status;
-                
-                if ($status === 'public') {
-                    // Use existing slug if provided (e.g. from controller), otherwise generate one
-                    $newSession->share_slug = $this->session['share_slug'] ?? \Illuminate\Support\Str::random(16);
-                } else {
-                    $newSession->share_slug = null;
-                }
                 
                 $newSession->save();
             }

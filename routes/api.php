@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\V1\UploadController;
 use App\Http\Controllers\Api\V1\ChatActivityController;
 use App\Http\Middleware\VerifySupabaseJwt;
 use App\Http\Controllers\Api\V1\ChatHistoryController;
+use App\Http\Controllers\Api\V1\ArticleCategoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -75,6 +76,7 @@ Route::group([
     // Articles with slug route
     Route::get('articles/slug/{slug}', [ArticleController::class, 'showBySlug']);
     Route::apiResource('articles', ArticleController::class);
+    Route::apiResource('article-categories', ArticleCategoryController::class);
     
     // Events with slug route
     Route::get('events/slug/{slug}', [EventController::class, 'showBySlug']);

@@ -218,6 +218,15 @@ class GeminiController extends Controller
             }
         }
         
+        // English indicators (not exhaustive, but enough for basic detection)
+        $englishWords = ['iam', 'i am', 'you', 'the', 'and', 'with', 'for', 'from', 'this', 'that', 'what', 'how', 'health', 'hello'];
+        $enCount = 0;
+        foreach ($englishWords as $word) {
+            if (preg_match('/\b' . preg_quote($word, '/') . '\b/', $hay)) {
+                $enCount++;
+            }
+        }
+        
         // Spanish/Portuguese indicators
         $latinWords = ['hola', 'ola', 'como', 'que', 'esta', 'por', 'para', 'cuando'];
         $latinCount = 0;
@@ -227,7 +236,8 @@ class GeminiController extends Controller
             }
         }
         
-        if ($idCount >= 1) return 'Indonesian';
+        if ($idCount >= 1 && $idCount >= $enCount) return 'Indonesian';
+        if ($enCount > $idCount) return 'English';
         if ($latinCount >= 1) return 'Spanish/Portuguese';
         
         // If not clearly something else, default to Indonesian
@@ -257,7 +267,7 @@ class GeminiController extends Controller
 
         $systemInstruction = 'You are Mei, a gentle, empathetic, and informative virtual health assistant. '.
             'Speak naturally, politely, and with a warm feminine tone as a caring female health assistant. '.
-            'Primary and default language is INDONESIAN. Even for brief messages, respond in Indonesian. '.
+            'Respond in the SAME language as the user. If the user message is a short greeting (e.g., "halo", "hi", "hei", "hello"), respond in INDONESIAN as the default. '.
             'Answer questions directly without introducing yourself or using greetings like "Halo", "Hi", etc. '.
             'Get straight to answering the user\'s question in a friendly but professional manner. '.
             "\n\n🚫 ABSOLUTE FORBIDDEN WORDS IN INITIAL RESPONSES 🚫\n".
@@ -515,6 +525,7 @@ class GeminiController extends Controller
                     'title' => $sessionData['title'] ?? substr($validated['prompt'], 0, 200),
                     'messages' => $existingMessages,
                     'urgent' => $urgent, // Track emergency status
+                    'status' => $validated['status'] ?? $existingSession->status ?? 'private',
                     'updatedAt' => now()->toIso8601String(),
                 ];
 
@@ -533,10 +544,6 @@ class GeminiController extends Controller
                 }
 
                 $status = $validated['status'] ?? 'private';
-                $shareSlug = null;
-                if ($status === 'public') {
-                    $shareSlug = (string) Str::random(16);
-                }
 
                 $session = [
                     'id' => $sessionId,
@@ -561,7 +568,6 @@ class GeminiController extends Controller
                     'urgent' => $urgent, // Track emergency status
                     'updatedAt' => now()->toIso8601String(),
                     'status' => $status,
-                    'share_slug' => $shareSlug,
                 ];
             }
 

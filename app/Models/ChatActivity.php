@@ -12,6 +12,9 @@ class ChatActivity extends Model
     protected $table = 'chat_activity';
     protected $keyType = 'string';
     public $incrementing = false;
+    protected $attributes = [
+        'status' => 'private',
+    ];
 
     protected $fillable = [
         'id',
@@ -28,4 +31,17 @@ class ChatActivity extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    protected static function booted()
+    {
+        static::saving(function ($chat) {
+            if ($chat->status === 'public') {
+                if (empty($chat->share_slug)) {
+                    $chat->share_slug = \Illuminate\Support\Str::random(16);
+                }
+            } else {
+                $chat->share_slug = null;
+            }
+        });
+    }
 }

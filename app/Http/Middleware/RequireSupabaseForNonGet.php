@@ -50,10 +50,38 @@ class RequireSupabaseForNonGet
         }
 
         /**
-         * ==================================
-         * NON-GET → SUPABASE ACCESS TOKEN
-         * ==================================
+         * ======================================
+         * PUBLIC NON-GET ROUTES (No Role Required)
+         * ======================================
          */
-        return app(SupabaseAuth::class)->handle($request,$next);
+        $publicNonGetRoutes = [
+            'api/v1/register',
+            'api/v1/login',
+            'api/v1/auth/google',
+            'api/v1/password/reset',
+            'api/v1/payments/notification',
+        ];
+
+        if ($request->is($publicNonGetRoutes)) {
+            return $next($request);
+        }
+
+        /**
+         * ==========================================
+         * SENSITIVE OPERATIONS -> ADMIN ROLE ONLY
+         * ==========================================
+         */
+        return app(SupabaseAuth::class)->handle($request, function ($req) use ($next) {
+            $role = $req->attributes->get('supabase_user_role');
+
+            if ($role !== 'admin') {
+                return response()->json([
+                    'message' => 'Forbidden: Admin role required',
+                    'role' => $role
+                ], 403);
+            }
+
+            return $next($req);
+        });
     }
 }

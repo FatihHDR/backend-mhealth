@@ -108,7 +108,7 @@ class SupabaseAuth
             $request->attributes->set('user_id', $payload->sub);
         }
 
-        $role = $payload->role ?? ($payload->user_role ?? null);
+        $role = $payload->user_role ?? ($payload->role ?? null);
         $request->attributes->set('supabase_user_role', $role ?? 'user');
 
         return $next($request);

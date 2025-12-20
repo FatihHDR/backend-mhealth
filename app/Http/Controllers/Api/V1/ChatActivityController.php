@@ -129,15 +129,6 @@ class ChatActivityController extends Controller
         ]);
 
         try {
-            if (isset($data['status'])) {
-                if ($data['status'] === 'public') {
-                    // Generate new slug when set to public
-                    $session->share_slug = \Illuminate\Support\Str::random(16);
-                } else {
-                    $session->share_slug = null;
-                }
-            }
-            
             $session->fill($data);
             $session->save();
         } catch (\Throwable $e) {

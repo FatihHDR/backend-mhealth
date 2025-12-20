@@ -2,18 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class ArticleCategory extends Model
 {
-    use HasUuids;
-
+    protected $primaryKey = 'id';
     protected $table = 'article_category';
     protected $keyType = 'string';
     public $incrementing = false;
 
     protected $fillable = [
+        'id',
         'en_category',
         'id_category',
         'en_description',
@@ -22,6 +21,6 @@ class ArticleCategory extends Model
 
     protected $casts = [
         'created_at' => 'datetime',
-        'udpated_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 }
