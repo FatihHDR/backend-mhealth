@@ -17,6 +17,7 @@ class Author extends Model
         'name',
         'jobdesc',
         'slug',
+        'profile_image',
     ];
 
     protected $casts = [

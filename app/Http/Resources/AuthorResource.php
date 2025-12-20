@@ -16,6 +16,7 @@ class AuthorResource extends JsonResource
                 'name' => $this->resource->name,
                 'jobdesc' => $this->resource->jobdesc,
                 'slug' => $this->resource->slug,
+                'profile_image' => $this->resource->profile_image,
             ];
         }
 
