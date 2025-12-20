@@ -20,6 +20,7 @@ class ChatActivity extends Model
         'public_id',
         'user_id',
         'share_slug',
+        'status',
     ];
 
     protected $casts = [

@@ -61,15 +61,19 @@ class ChatActivityController extends Controller
      */
     public function show($id)
     {
-        // Try to find by primary id first
-        $session = ChatActivity::find($id);
+        $session = null;
 
-        // If not found, allow lookup by public_id (useful when frontend supplies session public id)
-        if (! $session) {
+        // 1. Try to find by primary id (only if valid UUID)
+        if (\Illuminate\Support\Str::isUuid($id)) {
+            $session = ChatActivity::find($id);
+        }
+
+        // 2. If not found, allow lookup by public_id (only if valid UUID)
+        if (! $session && \Illuminate\Support\Str::isUuid($id)) {
             $session = ChatActivity::where('public_id', $id)->first();
         }
 
-        // If not found, allow lookup by share_slug
+        // 3. If not found, allow lookup by share_slug (string)
         if (! $session) {
             $session = ChatActivity::where('share_slug', $id)->first();
         }
@@ -78,7 +82,7 @@ class ChatActivityController extends Controller
             return response()->json(['message' => 'Not found'], 404);
         }
 
-        return response()->json($session);
+        return new \App\Http\Resources\ChatActivityResource($session);
     }
 
     /**
@@ -121,9 +125,19 @@ class ChatActivityController extends Controller
         $data = $request->validate([
             'title' => 'sometimes|string|nullable',
             'chat_activity_data' => 'sometimes|array',
+            'status' => 'sometimes|string|in:public,private',
         ]);
 
         try {
+            if (isset($data['status'])) {
+                if ($data['status'] === 'public') {
+                    // Generate new slug when set to public
+                    $session->share_slug = \Illuminate\Support\Str::random(16);
+                } else {
+                    $session->share_slug = null;
+                }
+            }
+            
             $session->fill($data);
             $session->save();
         } catch (\Throwable $e) {

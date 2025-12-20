@@ -21,6 +21,7 @@ class ChatActivityResource extends JsonResource
             'public_id' => $this->public_id,
             'user_id' => $this->user_id,
             'share_slug' => $this->share_slug,
+            'status' => $this->chat_status,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
