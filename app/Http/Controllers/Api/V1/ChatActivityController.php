@@ -69,6 +69,11 @@ class ChatActivityController extends Controller
             $session = ChatActivity::where('public_id', $id)->first();
         }
 
+        // If not found, allow lookup by share_slug
+        if (! $session) {
+            $session = ChatActivity::where('share_slug', $id)->first();
+        }
+
         if (! $session) {
             return response()->json(['message' => 'Not found'], 404);
         }

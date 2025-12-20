@@ -20,6 +20,7 @@ class ChatActivityResource extends JsonResource
             'chat_activity_data' => $this->chat_activity_data,
             'public_id' => $this->public_id,
             'user_id' => $this->user_id,
+            'share_slug' => $this->share_slug,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

@@ -87,6 +87,7 @@ class SaveChatActivity implements ShouldQueue
                 $newSession->chat_activity_data = $this->session;
                 $newSession->public_id = $this->publicId;
                 $newSession->user_id = $this->userId;
+                $newSession->share_slug = \Illuminate\Support\Str::random(16);
                 $newSession->save();
             }
         } catch (\Throwable $e) {
