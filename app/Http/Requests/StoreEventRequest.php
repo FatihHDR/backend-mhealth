@@ -51,6 +51,7 @@ class StoreEventRequest extends FormRequest
             'location_name' => 'nullable|string|max:255',
             'location_map' => 'nullable|url',
             'status' => 'nullable|string|in:draft,published,archived',
+            'registration_url' => 'nullable|url',
         ];
     }
 

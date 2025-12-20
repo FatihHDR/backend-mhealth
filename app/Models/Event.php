@@ -27,6 +27,7 @@ class Event extends Model
         'location_name',
         'location_map',
         'status',
+        'registration_url'
     ];
 
     protected $casts = [

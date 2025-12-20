@@ -105,7 +105,9 @@ class EventController extends Controller
             'end_date' => $data['end_date'],
             'location_name' => $data['location_name'] ?? null,
             'location_map' => $data['location_map'] ?? null,
+            'location_map' => $data['location_map'] ?? null,
             'status' => $data['status'] ?? 'draft',
+            'registration_url' => $data['registration_url'] ?? null,
         ];
 
         $event = Event::create($payload);
@@ -159,7 +161,7 @@ class EventController extends Controller
         }
 
         $directFields = ['highlight_image', 'reference_image', 'organized_image', 'organized_by', 
-                         'start_date', 'end_date', 'location_name', 'location_map', 'status'];
+                         'start_date', 'end_date', 'location_name', 'location_map', 'status', 'registration_url'];
 
         // Normalize reference_image to array if provided as single string
         if (array_key_exists('reference_image', $data)) {

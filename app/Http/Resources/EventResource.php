@@ -29,6 +29,7 @@ class EventResource extends JsonResource
                 'location_name' => $model->location_name,
                 'location_map' => $model->location_map,
                 'status' => $model->status,
+                'registration_url' => $model->registration_url,
             ];
         }
 
