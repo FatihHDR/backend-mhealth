@@ -24,6 +24,11 @@ class ArticleController extends Controller
     public function index(Request $request)
     {
         $query = Article::with('author')->orderBy('created_at', 'desc');
+
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
         $query = $this->applySearch($query, $request);
         $paginator = $this->paginateQuery($query);
 

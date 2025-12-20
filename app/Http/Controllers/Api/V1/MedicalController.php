@@ -29,6 +29,11 @@ class MedicalController extends Controller
     public function index(Request $request)
     {
         $query = Medical::orderBy('created_at', 'desc');
+
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
         $query = $this->applySearch($query, $request);
         $rows = $this->paginateQuery($query);
         return new MedicalCollection($rows);

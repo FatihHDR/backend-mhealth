@@ -27,6 +27,11 @@ class WellnessController extends Controller
     public function index(Request $request)
     {
         $query = Wellness::orderBy('created_at', 'desc');
+
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
         $query = $this->applySearch($query, $request);
         $rows = $this->paginateQuery($query);
 

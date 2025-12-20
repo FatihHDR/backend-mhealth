@@ -28,6 +28,11 @@ class PackagesController extends Controller
     public function index(Request $request)
     {
         $query = Packages::orderBy('created_at', 'desc');
+
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
         $query = $this->applySearch($query, $request);
         $packages = $this->paginateQuery($query);
 

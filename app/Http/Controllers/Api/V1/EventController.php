@@ -27,6 +27,11 @@ class EventController extends Controller
     public function index(Request $request)
     {
         $query = Event::orderBy('start_date', 'desc');
+
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
         $query = $this->applySearch($query, $request);
         $events = $this->paginateQuery($query);
 
