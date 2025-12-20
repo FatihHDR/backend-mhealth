@@ -7,6 +7,7 @@ use App\Http\Controllers\Concerns\Paginates;
 use Illuminate\Http\Request;
 use App\Models\ChatActivity;
 use Illuminate\Support\Facades\Log;
+use App\Http\Resources\ChatActivityResource;
 
 class ChatActivityController extends Controller
 {
@@ -30,7 +31,7 @@ class ChatActivityController extends Controller
         $perPage = (int) $request->query('per_page', 20);
         $data = $query->orderBy('updated_at', 'desc')->paginate($perPage);
 
-        return response()->json($data);
+        return ChatActivityResource::collection($data);
     }
 
     /**
@@ -52,7 +53,7 @@ class ChatActivityController extends Controller
             ->orWhere('user_id', $id)
             ->orderBy('updated_at', 'desc');
 
-        return response()->json($this->paginateQuery($query));
+        return ChatActivityResource::collection($this->paginateQuery($query));
     }
 
     /**
