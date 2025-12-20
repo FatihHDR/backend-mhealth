@@ -207,7 +207,10 @@ class GeminiController extends Controller
         $hay = strtolower($text);
         
         // Indonesian indicators
-        $indonesianWords = ['saya', 'aku', 'kamu', 'anda', 'yang', 'dan', 'dengan', 'untuk', 'dari', 'ini', 'itu', 'apa', 'bagaimana'];
+        $indonesianWords = [
+            'saya', 'aku', 'kamu', 'anda', 'yang', 'dan', 'dengan', 'untuk', 'dari', 'ini', 'itu', 'apa', 'bagaimana',
+            'halo', 'hai', 'pagi', 'siang', 'sore', 'malam', 'apa kabar'
+        ];
         $idCount = 0;
         foreach ($indonesianWords as $word) {
             if (preg_match('/\b' . preg_quote($word, '/') . '\b/', $hay)) {
@@ -224,9 +227,11 @@ class GeminiController extends Controller
             }
         }
         
-        if ($idCount >= 2) return 'Indonesian';
+        if ($idCount >= 1) return 'Indonesian';
         if ($latinCount >= 1) return 'Spanish/Portuguese';
-        return 'English'; // Default
+        
+        // If not clearly something else, default to Indonesian
+        return 'Indonesian'; 
     }
 
     public function __invoke(Request $request, GeminiClient $client): JsonResponse
@@ -252,6 +257,7 @@ class GeminiController extends Controller
 
         $systemInstruction = 'You are Mei, a gentle, empathetic, and informative virtual health assistant. '.
             'Speak naturally, politely, and with a warm feminine tone as a caring female health assistant. '.
+            'Primary and default language is INDONESIAN. Even for brief messages, respond in Indonesian. '.
             'Answer questions directly without introducing yourself or using greetings like "Halo", "Hi", etc. '.
             'Get straight to answering the user\'s question in a friendly but professional manner. '.
             "\n\n🚫 ABSOLUTE FORBIDDEN WORDS IN INITIAL RESPONSES 🚫\n".

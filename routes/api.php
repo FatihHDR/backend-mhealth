@@ -31,7 +31,7 @@ use App\Http\Controllers\Api\V1\ChatHistoryController;
 Route::group([
     'prefix' => 'v1',
     'namespace' => 'App\Http\Controllers\Api\V1',
-    // 'middleware' => [\App\Http\Middleware\ForceJsonForApi::class, \App\Http\Middleware\RequireSupabaseForNonGet::class],
+    'middleware' => [\App\Http\Middleware\ForceJsonForApi::class, \App\Http\Middleware\RequireSupabaseForNonGet::class],
 ], function () {
     // Public auth
     Route::post('register', [AuthController::class, 'register']);

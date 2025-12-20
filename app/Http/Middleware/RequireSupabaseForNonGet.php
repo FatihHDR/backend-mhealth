@@ -29,11 +29,10 @@ class RequireSupabaseForNonGet
          * GET → STATIC API KEY ONLY
          * ==========================
          */
-        if ($request->isMethod('GET')) {
-            return $next($request);
-            /* $apiKey = $request->header('X-API-Key');
+        if ($request->isMethod('GET') || $request->is('api/v1/gemini/generate')) {
+            $apiKey = $request->header('X-Api-Key');
 
-            $validKey = env('API_SECRET_KEY');
+            $validKey = config('app.api_secret_key') ?: env('API_SECRET_KEY');
 
             if (! $validKey) {
                 return response()->json([
@@ -41,13 +40,13 @@ class RequireSupabaseForNonGet
                 ], 500);
             }
 
-            if (! $apiKey || ! hash_equals($validKey, $apiKey)) {
+            if (! $apiKey || $apiKey !== $validKey) {
                 return response()->json([
                     'message' => 'Invalid or missing API key'
                 ], 401);
             }
 
-            return $next($request); */
+            return $next($request);
         }
 
         /**

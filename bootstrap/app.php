@@ -13,8 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(\App\Http\Middleware\CleanupDatabaseConnections::class);
-        // $middleware->append(\App\Http\Middleware\RequireSupabaseForNonGet::class);
-        // $middleware->append(\App\Http\Middleware\SupabaseAuth::class);
+        $middleware->append(\App\Http\Middleware\RequireSupabaseForNonGet::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

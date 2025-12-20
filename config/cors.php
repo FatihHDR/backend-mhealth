@@ -55,6 +55,8 @@ return [
         'ngrok-skip-browser-warning',
         'Cache-Control',
         'Pragma',
+        'X-API-Key',
+        'x-api-key',
     ],
 
     'exposed_headers' => [
