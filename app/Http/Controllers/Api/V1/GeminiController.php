@@ -242,6 +242,7 @@ class GeminiController extends Controller
             'user_id' => ['sometimes', 'string', 'nullable'], // From Supabase auth
             'new_session' => ['sometimes', 'boolean'],
             'replyTo' => ['sometimes', 'nullable'], // Accept camelCase from frontend
+            'status' => ['sometimes', 'string', 'in:public,private'],
         ]);
 
         $messageCount = 0;
@@ -525,6 +526,12 @@ class GeminiController extends Controller
                     $generatedTitle = $this->generateFallbackTitle($validated['prompt']);
                 }
 
+                $status = $validated['status'] ?? 'private';
+                $shareSlug = null;
+                if ($status === 'public') {
+                    $shareSlug = (string) Str::random(16);
+                }
+
                 $session = [
                     'id' => $sessionId,
                     'title' => $generatedTitle,
@@ -547,6 +554,8 @@ class GeminiController extends Controller
                     ],
                     'urgent' => $urgent, // Track emergency status
                     'updatedAt' => now()->toIso8601String(),
+                    'status' => $status,
+                    'share_slug' => $shareSlug,
                 ];
             }
 
@@ -609,15 +618,17 @@ class GeminiController extends Controller
             ];
         }
 
-        return response()->json([
+        return new JsonResponse([
             'reply' => $replyText,
             'raw' => $response,
             'urgent' => $urgent,
             'actions' => $actions,
-            'session_id' => $sessionId ?? null,  // unique per chat session (primary key)
-            'public_id' => $publicId ?? null,    // persistent per user/device
-            'title' => $session['title'] ?? null, // AI-generated title for the session
-        ]);
+            'session_id' => $sessionId ?? null,
+            'public_id' => $publicId ?? null,
+            'title' => $session['title'] ?? null,
+            'status' => $session['status'] ?? 'private',
+            'share_slug' => $session['share_slug'] ?? null,
+        ], 201);
     }
 
     private function detectPackageRecommendations(string $text): array

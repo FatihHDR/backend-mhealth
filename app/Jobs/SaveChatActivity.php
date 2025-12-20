@@ -102,11 +102,12 @@ class SaveChatActivity implements ShouldQueue
                 $newSession->public_id = $this->publicId;
                 $newSession->user_id = $this->userId;
                 
-                $status = $this->session['chat_status'] ?? 'private';
-                $newSession->chat_status = $status;
+                $status = $this->session['status'] ?? 'private';
+                $newSession->status = $status;
                 
                 if ($status === 'public') {
-                    $newSession->share_slug = \Illuminate\Support\Str::random(16);
+                    // Use existing slug if provided (e.g. from controller), otherwise generate one
+                    $newSession->share_slug = $this->session['share_slug'] ?? \Illuminate\Support\Str::random(16);
                 } else {
                     $newSession->share_slug = null;
                 }
