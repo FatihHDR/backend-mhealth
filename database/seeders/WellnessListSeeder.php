@@ -105,6 +105,9 @@ class WellnessListSeeder extends Seeder
             // Generate slug
             $slug = Str::slug($name ?? $hotel->slug);
 
+            // Ensure slug is included in the data being inserted
+            $map['slug'] = $slug;
+
             $rows[] = [
                 'slug' => $slug,
                 'id' => $hotel->id,
