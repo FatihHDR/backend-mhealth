@@ -304,6 +304,33 @@ docker:build-feature:
   tags:
     - docker
 
+# Push to Docker Hub (requires DOCKERHUB_USERNAME and DOCKERHUB_TOKEN in CI variables)
+docker:push-dockerhub:
+  stage: docker
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - echo "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+  script:
+    - export DOCKERHUB_IMAGE=docker.io/$DOCKERHUB_USERNAME/backend-mhealth
+    - echo "Building and pushing to Docker Hub - $DOCKERHUB_IMAGE"
+    - docker build --tag $DOCKERHUB_IMAGE:$CI_COMMIT_SHORT_SHA --tag $DOCKERHUB_IMAGE:latest .
+    - docker push $DOCKERHUB_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker push $DOCKERHUB_IMAGE:latest
+    - echo "Pushed to Docker Hub"
+    - echo "  $DOCKERHUB_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - echo "  $DOCKERHUB_IMAGE:latest"
+  only:
+    - main
+    - master
+    - tags
+  tags:
+    - docker
+  needs:
+    - composer:install
+    - npm:build
+
 # ============================================
 # Deployment (Optional - Customize as needed)
 # ============================================
