@@ -1,5 +1,5 @@
 # GitLab CI/CD Pipeline for Laravel Application
-# This pipeline includes building, testing, code quality checks, and deployment stages
+# Includes Docker build, testing, and push to GitLab Container Registry
 
 image: php:8.2-fpm
 
@@ -11,7 +11,9 @@ stages:
   - test
   - quality
   - security
+  - docker
   - report
+  - deploy
 
 # Cache dependencies for faster builds
 cache:
@@ -28,6 +30,10 @@ cache:
 variables:
   CACHE_DRIVER: array
   SESSION_DRIVER: array
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
 
 # Template for PHP jobs
 .php_base:
@@ -229,6 +235,99 @@ phpunit:test:
     - php artisan config:clear
     - php artisan migrate --force --seed
     - ./vendor/bin/phpunit --testdox --colors=never
+
+# ============================================
+# Docker Build and Push to Container Registry
+# ============================================
+
+# Build Docker image and push to GitLab Container Registry
+docker:build:
+  stage: docker
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - echo "Building Docker image for commit $CI_COMMIT_SHORT_SHA..."
+    - docker build 
+        --pull
+        --cache-from $IMAGE_LATEST
+        --tag $IMAGE_TAG
+        --tag $IMAGE_LATEST
+        --file Dockerfile
+        .
+    - echo "Pushing to GitLab Container Registry..."
+    - docker push $IMAGE_TAG
+    - docker push $IMAGE_LATEST
+    - echo "✓ Image pushed successfully:"
+    - echo "  - $IMAGE_TAG"
+    - echo "  - $IMAGE_LATEST"
+  only:
+    - main
+    - master
+    - develop
+    - tags
+  tags:
+    - docker
+  needs:
+    - composer:install
+    - npm:build
+
+# Build Docker images for feature branches
+docker:build-feature:
+  stage: docker
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - export FEATURE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    - echo "Building feature branch image: $FEATURE_TAG"
+    - docker build --tag $FEATURE_TAG .
+    - docker push $FEATURE_TAG
+    - echo "✓ Feature image pushed: $FEATURE_TAG"
+  except:
+    - main
+    - master
+    - develop
+    - tags
+  when: manual
+  tags:
+    - docker
+
+# ============================================
+# Deployment (Optional - Customize as needed)
+# ============================================
+
+# Deploy to staging/production
+deploy:production:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl git
+  script:
+    - echo "Deploying image $IMAGE_TAG to production..."
+    - echo "Image ready at $CI_REGISTRY_IMAGE"
+    # Add your deployment commands here:
+    # Example: SSH to server and pull the image
+    # - ssh user@server "docker pull $IMAGE_TAG && docker-compose up -d"
+    # Example: Update Kubernetes deployment
+    # - kubectl set image deployment/laravel-app app=$IMAGE_TAG
+    # Example: Trigger deployment webhook
+    # - curl -X POST $DEPLOY_WEBHOOK_URL -H "Authorization: Bearer $DEPLOY_TOKEN"
+  environment:
+    name: production
+    url: https://your-app-domain.com
+  only:
+    - main
+    - master
+  when: manual
+  needs:
+    - docker:build
+  tags:
+    - docker
   artifacts:
     when: always
     paths:

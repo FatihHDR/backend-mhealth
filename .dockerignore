@@ -1,13 +1,64 @@
-vendor
+# Dependencies (will be installed during build)
 node_modules
+
+# Environment files
 .env
+.env.*
+!.env.example
+
+# Storage keys
 /storage/*.key
 /storage/*.pem
 /storage/oauth-private.key
 /storage/oauth-public.key
+
+# IDE
 /.idea
 /.vscode
+
+# Version control
 /.git
+.gitignore
+.gitattributes
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Logs
 npm-debug.log
-composer.lock
+yarn-error.log
+/storage/logs/*.log
+
+# Test files
+phpunit.xml
+.phpunit.result.cache
+/tests
+
+# Documentation
+*.md
+!README.md
+
+# CI/CD
+.gitlab-ci.yml
+.github
+
+# Docker development files
+docker-compose*.yml
+Dockerfile.dev
+
+# Database files
+*.sql
+db-*.sql
+*.sqlite
+*.sqlite3
+
+# CSV and temporary data
+csv-files/
+cookies.txt
+/tmp
+*.tmp
+*.cache
+
+# Scripts
+scripts/
