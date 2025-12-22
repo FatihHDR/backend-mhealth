@@ -254,9 +254,9 @@ docker:build:
     - echo "Pushing to GitLab Container Registry..."
     - docker push $IMAGE_TAG
     - docker push $IMAGE_LATEST
-    - echo "✓ Image pushed successfully:"
-    - echo "  - $IMAGE_TAG"
-    - echo "  - $IMAGE_LATEST"
+    - echo "Image pushed successfully"
+    - echo "Tagged as $IMAGE_TAG"
+    - echo "Tagged as $IMAGE_LATEST"
   only:
     - main
     - master
@@ -278,10 +278,10 @@ docker:build-feature:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
     - export FEATURE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-    - echo "Building feature branch image: $FEATURE_TAG"
+    - echo "Building feature branch image $FEATURE_TAG"
     - docker build --tag $FEATURE_TAG .
     - docker push $FEATURE_TAG
-    - echo "✓ Feature image pushed: $FEATURE_TAG"
+    - echo "Feature image pushed $FEATURE_TAG"
   except:
     - main
     - master
