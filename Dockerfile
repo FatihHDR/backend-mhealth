@@ -19,6 +19,7 @@ RUN apk add --no-cache \
     curl \
     zip \
     unzip \
+    libzip-dev \
     libpng-dev \
     libjpeg-turbo-dev \
     libwebp-dev \
