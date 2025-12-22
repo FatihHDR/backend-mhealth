@@ -39,8 +39,8 @@ variables:
 .php_base:
   before_script:
     - apt-get update -yqq
-    - apt-get install -yqq git libzip-dev libpq-dev libicu-dev libonig-dev libsqlite3-dev unzip
-    - docker-php-ext-install pdo_mysql pdo_sqlite zip intl mbstring
+    - apt-get install -yqq git libzip-dev libpq-dev libicu-dev libonig-dev libsqlite3-dev unzip postgresql-client
+    - docker-php-ext-install pdo_mysql pdo_pgsql pdo_sqlite zip intl mbstring
     - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
     - composer --version
 
@@ -225,12 +225,25 @@ phpunit:test:
   stage: test
   dependencies:
     - composer:install
+  services:
+    - name: postgres:15-alpine
+      alias: postgres
+  variables:
+    POSTGRES_DB: laravel
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: password
   script:
     - php -v
     - cp .env.example .env
-    # Override database config untuk testing dengan SQLite
-    - echo "DB_CONNECTION=sqlite" >> .env
-    - echo "DB_DATABASE=:memory:" >> .env
+    # Use PostgreSQL for CI (migrations generated for Postgres)
+    - echo "DB_CONNECTION=pgsql" >> .env
+    - echo "DB_HOST=postgres" >> .env
+    - echo "DB_PORT=5432" >> .env
+    - echo "DB_DATABASE=laravel" >> .env
+    - echo "DB_USERNAME=postgres" >> .env
+    - echo "DB_PASSWORD=password" >> .env
+    - echo "Waiting for Postgres to be ready..."
+    - for i in {1..15}; do pg_isready -h postgres -p 5432 && break || sleep 1; done
     - php artisan key:generate
     - php artisan config:clear
     - php artisan migrate --force --seed
