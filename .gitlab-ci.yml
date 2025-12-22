@@ -1,7 +1,7 @@
 # GitLab CI/CD Pipeline for Laravel Application
 # Includes Docker build, testing, and push to GitLab Container Registry
 
-image: php:8.2-fpm
+image: php:8.4-fpm
 
 # Define pipeline stages
 stages:
