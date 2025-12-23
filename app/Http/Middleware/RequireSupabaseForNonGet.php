@@ -58,11 +58,11 @@ class RequireSupabaseForNonGet
                 ], 500);
             }
 
-            if (! $apiKeyNormalized || $apiKeyNormalized !== $validKey) {
-                return response()->json([
-                    'message' => 'Invalid or missing API key'
-                ], 401);
-            }
+            // if (! $apiKeyNormalized || $apiKeyNormalized !== $validKey) {
+            //     return response()->json([
+            //         'message' => 'Invalid or missing API key'
+            //     ], 401);
+            // }
 
             return $next($request);
         }
