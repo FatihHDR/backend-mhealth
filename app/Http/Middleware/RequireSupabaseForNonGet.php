@@ -32,7 +32,8 @@ class RequireSupabaseForNonGet
         if ($request->isMethod('GET') || $request->is('api/v1/gemini/generate')) {
             $apiKey = $request->header('X-Api-Key');
 
-            $validKey = config('app.api_secret_key') ?: env('API_SECRET_KEY');
+            // In production, prefer direct env() to avoid config cache issues
+            $validKey = env('API_SECRET_KEY') ?: config('app.api_secret_key');
 
             // Normalize the incoming header: accept both raw key and "Bearer <key>"
             $apiKeyNormalized = null;
@@ -43,10 +44,12 @@ class RequireSupabaseForNonGet
             // Debug log: show masked keys to diagnose env/config/header mismatch
             try {
                 \Log::info('RequireSupabaseForNonGet key debug', [
-                    'validKey_config' => $this->mask(config('app.api_secret_key')),
-                    'validKey_env' => $this->mask(getenv('API_SECRET_KEY')),
+                    'validKey_from_env' => $this->mask(env('API_SECRET_KEY')),
+                    'validKey_from_config' => $this->mask(config('app.api_secret_key')),
+                    'validKey_used' => $this->mask($validKey),
                     'header_raw' => $this->mask($apiKey),
                     'header_normalized' => $this->mask($apiKeyNormalized),
+                    'match' => ($apiKeyNormalized === $validKey) ? 'YES' : 'NO'
                 ]);
             } catch (\Throwable $e) {
                 // ignore logging failures
