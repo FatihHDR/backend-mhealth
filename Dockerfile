@@ -20,7 +20,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install common PHP extensions used by Laravel
-RUN docker-php-ext-install pdo pdo_mysql mbstring xml zip gd bcmath intl || true
+RUN docker-php-ext-install pdo pdo_mysql mbstring xml zip gd bcmath intl pcntl
 
 # Install Swoole via PECL and enable it
 RUN pecl channel-update pecl.php.net \
@@ -36,15 +36,20 @@ WORKDIR /var/www
 COPY composer.json composer.lock ./
 
 # Install PHP dependencies (skip scripts so build doesn't run runtime commands)
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts || true
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts
 
 # Copy application source
 COPY . .
 
 # Ensure storage and cache directories are writable
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache || true
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
-EXPOSE 8000
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Start Laravel Octane with Swoole
-CMD ["php", "artisan", "octane:start", "--server=swoole", "--host=0.0.0.0", "--port=8000", "--workers=auto"]
+EXPOSE 80
+
+# Entrypoint ensures environment is prepared (APP_KEY etc.) then starts Octane
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+# Run Octane on port 80 so platform readiness probes on port 80 succeed
+CMD ["php", "artisan", "octane:start", "--server=swoole", "--host=0.0.0.0", "--port=80", "--workers=auto"]
