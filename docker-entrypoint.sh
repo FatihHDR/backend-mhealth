@@ -12,6 +12,14 @@ if [ -n "$API_SECRET_KEY" ]; then
     rm /var/www/.env
     echo "Removed .env file to use environment variables"
   fi
+  
+  # Generate APP_KEY if not set as environment variable
+  if [ -z "$APP_KEY" ]; then
+    echo "APP_KEY env var not set - generating one..."
+    # Generate a random base64 key
+    export APP_KEY="base64:$(openssl rand -base64 32)"
+    echo "Generated APP_KEY: ${APP_KEY}"
+  fi
 else
   # Development mode - create .env from .env.example
   if [ ! -f /var/www/.env ]; then
