@@ -12,6 +12,7 @@ RUN apt-get update \
         libzip-dev \
         libssl-dev \
         libicu-dev \
+        libpq-dev \
         zlib1g-dev \
         libcurl4-openssl-dev \
         build-essential \
@@ -19,8 +20,8 @@ RUN apt-get update \
         pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Install common PHP extensions used by Laravel
-RUN docker-php-ext-install pdo pdo_mysql mbstring xml zip gd bcmath intl pcntl
+# Install common PHP extensions used by Laravel (including pdo_pgsql for PostgreSQL)
+RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring xml zip gd bcmath intl pcntl
 
 # Install Swoole via PECL and enable it
 RUN pecl channel-update pecl.php.net \
