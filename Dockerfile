@@ -1,36 +1,35 @@
-FROM php:8.4-cli
+FROM ghcr.io/frankenphp/frankenphp:php-8.4-apache
 
-# Install system dependencies
+# Install system dependencies and common PHP extensions used by Laravel/Octane
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         git \
         unzip \
+        zip \
         libpng-dev \
         libonig-dev \
         libxml2-dev \
         libzip-dev \
-        zip \
-    && docker-php-ext-install pdo pdo_mysql mbstring xml zip gd bcmath
+        libicu-dev \
+    && docker-php-ext-install pdo pdo_mysql mbstring xml zip gd bcmath intl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install composer
-RUN php -r "copy('https://getcomposer.org/installer','/tmp/composer-setup.php');" \
-    && php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer \
-    && rm /tmp/composer-setup.php
+WORKDIR /var/www/html
 
-WORKDIR /var/www
-
-# Copy composer files first to install dependencies (leverages layer cache)
+# Copy composer files first for better layer caching
 COPY composer.json composer.lock ./
 
+# Install composer dependencies (skip scripts to avoid Octane runtime steps here)
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts || true
 
-# Copy application files
+# Copy application
 COPY . .
 
-# Ensure storage and cache are writable
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache || true
+# Ensure storage/cache writable
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache || true
 
-EXPOSE 8000
+EXPOSE 80
 
-# Serve the application with artisan for simple platform builds
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# Use the base image's default entrypoint (FrankenPHP with Apache). The image
+# automatically serves the document root; ensure Laravel's public folder is used
+# by the platform or map the container's document root to /var/www/html/public.
