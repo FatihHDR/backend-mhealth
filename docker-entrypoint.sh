@@ -20,6 +20,12 @@ if [ -n "$API_SECRET_KEY" ]; then
     export APP_KEY="base64:$(openssl rand -base64 32)"
     echo "Generated APP_KEY: ${APP_KEY}"
   fi
+  
+  # Use file-based cache in production to avoid database cache table requirement
+  if [ -z "$CACHE_STORE" ]; then
+    export CACHE_STORE=file
+    echo "Set CACHE_STORE=file for production"
+  fi
 else
   # Development mode - create .env from .env.example
   if [ ! -f /var/www/.env ]; then
