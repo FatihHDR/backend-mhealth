@@ -34,12 +34,19 @@ class RequireSupabaseForNonGet
 
             $validKey = config('app.api_secret_key') ?: env('API_SECRET_KEY');
 
+            // Normalize the incoming header: accept both raw key and "Bearer <key>"
+            $apiKeyNormalized = null;
+            if ($apiKey) {
+                $apiKeyNormalized = preg_replace('/^\s*Bearer\s+/i', '', trim($apiKey));
+            }
+
             // Debug log: show masked keys to diagnose env/config/header mismatch
             try {
                 \Log::info('RequireSupabaseForNonGet key debug', [
                     'validKey_config' => $this->mask(config('app.api_secret_key')),
                     'validKey_env' => $this->mask(getenv('API_SECRET_KEY')),
-                    'header' => $this->mask($apiKey),
+                    'header_raw' => $this->mask($apiKey),
+                    'header_normalized' => $this->mask($apiKeyNormalized),
                 ]);
             } catch (\Throwable $e) {
                 // ignore logging failures
@@ -51,7 +58,7 @@ class RequireSupabaseForNonGet
                 ], 500);
             }
 
-            if (! $apiKey || $apiKey !== $validKey) {
+            if (! $apiKeyNormalized || $apiKeyNormalized !== $validKey) {
                 return response()->json([
                     'message' => 'Invalid or missing API key'
                 ], 401);
