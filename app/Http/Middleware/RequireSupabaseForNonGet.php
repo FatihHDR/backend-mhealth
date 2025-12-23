@@ -34,6 +34,17 @@ class RequireSupabaseForNonGet
 
             $validKey = config('app.api_secret_key') ?: env('API_SECRET_KEY');
 
+            // Debug log: show masked keys to diagnose env/config/header mismatch
+            try {
+                \Log::info('RequireSupabaseForNonGet key debug', [
+                    'validKey_config' => $this->mask(config('app.api_secret_key')),
+                    'validKey_env' => $this->mask(getenv('API_SECRET_KEY')),
+                    'header' => $this->mask($apiKey),
+                ]);
+            } catch (\Throwable $e) {
+                // ignore logging failures
+            }
+
             if (! $validKey) {
                 return response()->json([
                     'message' => 'API key authentication not configured'
@@ -83,5 +94,17 @@ class RequireSupabaseForNonGet
 
             return $next($req);
         });
+    }
+
+    /**
+     * Mask a secret for safe logging (show first 6 chars)
+     */
+    protected function mask($s)
+    {
+        if (! $s) return null;
+        $s = (string) $s;
+        $len = strlen($s);
+        if ($len <= 8) return substr($s, 0, 3) . str_repeat('*', max(0, $len-3));
+        return substr($s, 0, 6) . '...' . substr($s, -2);
     }
 }
